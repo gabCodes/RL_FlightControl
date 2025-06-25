@@ -19,7 +19,7 @@ The files that do most the work are:
 - `plot_generation.py`: Generates learning curves, parallel co-ordinate plots and .
 - `policy_plotter.py`: For generating policy plots.
 
-## Minimal Workflow to Generate Weights
+## Minimal workflow to generate weights and generate plots
 
 To train agents and generate weights:
 
