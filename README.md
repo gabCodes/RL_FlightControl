@@ -2,7 +2,7 @@
 
 Code used for my master's thesis, will be updated to be more user friendly (for files like policy_plotter, faul_cases, etc).
 
-> **Note:** The code currently requires **Windows OS** as the model citation model is compiled for a Windows architecture.
+> **Note:** The code currently requires **Windows OS** as the Cessna Citation model is compiled for a Windows architecture.
 
 
 ## Requirements
