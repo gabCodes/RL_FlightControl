@@ -11,8 +11,6 @@ Code used for my master's thesis, will be updated to be more user friendly (for 
 - **Network weights** are **not** uploaded due to size limits. If you're interested in the weights, reach out via GitHub and we’ll figure out a way to share them.
 - You can still generate your own weights using the code (see below).
 
-Requirements to make the code work as is are given in `requirements.txt`, will require windows os as the model is compiled for a windows architecture. Network weights are not uploaded to this GitHub since the folder is too heavy, reach out via here (GitHub) if you're interested in those and we'll figure out a way to transfer those. The weights are not necessary, however, as you can generate your own using the code.
-
 ## Core files
 The files that do most the work are:
 
