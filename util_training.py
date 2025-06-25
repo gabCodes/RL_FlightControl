@@ -77,7 +77,7 @@ def generate_ref(duration, max_amp=0.26, num_terms=4, dt=0.01, offset=0.032):
     return ref_function
 
 #Train SAC agent for pitch
-def train_sac_pitch(agent, task, ep_num, resolution, run_dir, ep_length, SAC=True):
+def train_sac_pitch(agent, task, ep_num, resolution, run_dir, ep_length, SAC=True, save=True):
     if SAC == True:
         algo = "SAC"
     
@@ -119,12 +119,12 @@ def train_sac_pitch(agent, task, ep_num, resolution, run_dir, ep_length, SAC=Tru
             if agent.replay_buffer.size > agent.batch_size:
                 _, _, _, _, _ = agent.update()
             
-            if episode + 1 <= 5 and count % 50 == 0:
+            if save == True and episode + 1 <= 5 and count % 50 == 0:
                 save_path = os.path.join(ep_dir, f"{task}50{algo}STEP_{count}.pt")
                 agent.save_weights(save_path)
                 print(f"Saved agent at step {count} to {save_path}")
 
-            if count % resolution == 0:
+            if save == True and count % resolution == 0:
                 save_path = os.path.join(ep_dir, f"{task}{resolution}{algo}STEP_{count}.pt")
                 agent.save_weights(save_path)
                 print(f"Saved agent at step {count} to {save_path}")
@@ -660,129 +660,3 @@ def redq_30_runs(task, resolution, ep_num, training=False, q_nr = 3):
 # redq_30_runs("v2ROLL", 50, 5, training=False, q_nr=5)
 # redq_30_runs("v2PITCHROLL", 250, 10, training=True, q_nr=5)
 # redq_30_runs("v2PITCHROLL", 50, 5, training=False, q_nr=5)
-# #Retrieve the error per axis angle, only relevant for pitchroll
-# def error_pitchroll(agent):
-
-#     def piecewise_ref(t):
-#         return 0.12*np.sin(0.4*t) + 0.032
-    
-#     def roll_piecewise_ref(t):
-#         return 0.12*np.sin(0.4*t)
-    
-#     error_list = []
-#     ep_reward = 0
-#     ep_length = 20
-#     timestep = 0
-#     done = False
-#     terminated = False
-#     initialize()
-#     for t in range(2000):
-#         output = step([-0.025,0,0,0,0,0,0,0,1449.775,1449.775])
-#     state = [np.rad2deg(0.032 - output[7]), np.rad2deg(output[1]), np.rad2deg(output[6]), np.rad2deg(output[0])]
-#     state_tensor = torch.FloatTensor(state).unsqueeze(0)
-
-
-#     while not (done or terminated):
-#         pitch_ref = piecewise_ref(timestep)
-#         roll_ref = roll_piecewise_ref(timestep)
-
-#         #Choose action
-#         action, _, _ = agent.actor.sample(state_tensor)
-#         action = action.detach().cpu().numpy()[0]
-#         pitch_action = action[0].item()
-#         roll_action = action[1].item()
-
-#         #Input to model
-#         output = step([pitch_action,roll_action,0,0,0,0,0,0,1449.775,1449.775])
-#         next_state = torch.FloatTensor([np.rad2deg(pitch_ref - output[7]), np.rad2deg(output[1]), 
-#                                         np.rad2deg(roll_ref - output[6]), np.rad2deg(output[0])]).unsqueeze(0)
-#         reward = -0.6*np.abs(next_state[0][0]) - 0.4*np.abs(next_state[0][2])
-
-#         if torch.isnan(next_state).any():
-#             terminated = True
-#             break
-            
-#         error_list.append([np.abs(np.rad2deg(pitch_ref - output[7])), np.abs(np.rad2deg(roll_ref - output[6]))])
-#         state_tensor = next_state
-#         ep_reward += reward
-#         timestep += 0.01
-
-#         done = timestep > ep_length
-
-#     terminate()
-
-#     ep_error = np.array(error_list)
-#     ep_error = np.sum(ep_error, axis=0)/ep_length*100
-
-#     return ep_error, ep_reward
-
-# #Calculate the error per axis angle at end, only relevant for pitchroll
-# def pitchroll_error_at_end(task, resolution, ep_num):
-#     GAMMA = 0.989
-#     TAU = 0.07645
-#     LR = 0.00063
-#     BATCH_SIZE = 64
-#     BUFFER_SIZE = 250000
-#     max_action = 0.26
-#     nr_runs = 30
-#     error_list = []
-#     reward_list = []
-#     for run_nr in range(nr_runs):
-#         run_name = f'RUN{run_nr + 1}'
-#         run_dir = os.path.join("checkpoints", run_name)
-#         if not sac_has_2500_weights(task, run_dir, ep_num, resolution):
-#             print(f"Skipping run {run_name}: Missing step-2500 weights.")
-#             continue
-
-#         agent = SACAgent(
-#             state_dim=4,
-#             action_dim=2,
-#             max_action=max_action,
-#             gamma=GAMMA,
-#             tau=TAU,
-#             lr=LR,
-#             batch_size=BATCH_SIZE,
-#             buffer_size=BUFFER_SIZE,
-#             lam_s=5,
-#             lam_t=15
-#         )
-
-#         step = 2500
-#         ep_name = f'EP{ep_num}'
-#         ep_dir = os.path.join(run_dir, ep_name)
-
-#         actor_path = os.path.join(
-#             ep_dir, f"{task}{resolution}SACSTEP_{step}.pt_actor.pth"
-#         )
-#         critic_path = os.path.join(
-#                 ep_dir, f"{task}{resolution}SACSTEP_{step}.pt_critic.pth"
-#             )
-        
-
-#         agent.load_weights(actor_path, critic_path)
-#         step_error, ep_reward = error_pitchroll(agent)
-#         error_list.append(step_error)
-#         reward_list.append(ep_reward)
-
-#     error_array = np.array(error_list)
-#     error = np.mean(error_array, axis=0)
-#     reward_array = np.array(reward_list)
-#     reward = np.mean(reward_array,axis=0)
-#     print("Mean error across columns:", error)
-#     print("Mean reward:", reward)
-
-# run_nr = 30
-# ep_num = 10
-# for run_nr in range(run_nr):
-#     run_name = f'RUN{run_nr+1}'
-#     run_dir = os.path.join("checkpoints", run_name)
-#     for episode in range(ep_num):
-#         ep_name = f'EP{episode+1}'
-#         ep_dir = os.path.join(run_dir, ep_name)
-#         for filename in os.listdir(ep_dir):
-#             if filename.startswith('ROLLSAC'):
-#                 new_name = filename.replace('ROLLSAC', 'ROLL250SAC', 1)
-#                 old_path = os.path.join(ep_dir, filename)
-#                 new_path = os.path.join(ep_dir, new_name)
-#                 os.rename(old_path, new_path)
-#                 print(f'Renamed: {filename} -> {new_name}')
