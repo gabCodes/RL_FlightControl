@@ -16,7 +16,7 @@ The files that do most the work are:
 
 - `util_training.py`: Handles the training of agents.
 - `fault_cases.py`: Handles the fault cases and generates the box plots.
-- `plot_generation.py`: Generates learning curves, parallel co-ordinate plots and .
+- `plot_generation.py`: Generates learning curves, parallel co-ordinate plots and time-series plots.
 - `policy_plotter.py`: For generating policy plots.
 
 ## Minimal workflow to generate weights and generate plots
