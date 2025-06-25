@@ -28,13 +28,13 @@ To train agents and generate weights:
 1. Open `util_training.py`.
 2. Use `sac_30_runs()` or `redq_30_runs()` (see comments in the file).
 3. Training is:
-   - **Time-consuming** (~1 day for 30 REDQ agents; ~1 hour per agent).
+   - **Time-consuming** (~1 day for 30 REDQ agents, ~1 hour per agent).
    - **Storage-intensive**.
 
 Once training is complete, weights will be saved in the `.\checkpoints\` subfolder.
 
 After weights are generated:
 
-- Run the code at the **bottom of** `fault_cases.py`.
+- Run the code at the bottom of `fault_cases.py`.
 - Set `plot=True` to generate time series plots per condition.
 - Leave `plot=False` to evaluate all agents and produce box plots.
