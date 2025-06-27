@@ -5,26 +5,6 @@ import torch.nn.functional as F
 import numpy as np
 import matplotlib.pyplot as plt
 
-# # Hyperparameters
-# GAMMA = 0.9406373635963042
-# TAU = 0.008682842078124023
-# ALPHA = 0.4078747595497512
-# LR = 0.0008214923037555669
-# BUFFER_SIZE = 1000000
-# BATCH_SIZE = 64
-
-# Hyperparameters 
-# GAMMA = 0.9986559948625802
-# TAU = 0.009332486812091685
-# ALPHA = 0.18477469812850617
-# LR = 0.0007527379388116154
-# BUFFER_SIZE = 1000000
-# BATCH_SIZE = 256
-
-# Environment setup
-# env = gym.make("InvertedPendulum-v4")  # MuJoCo environment
-# max_action = 3.0  # Action range is [-3, 3]
-
 # Actor (Policy) Network
 class Actor(nn.Module):
     def __init__(self, state_dim, action_dim, max_action):
@@ -134,7 +114,7 @@ class SACAgent:
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=lr)
 
-        # **Automatic Entropy Tuning**
+        # Automatic Entropy Tuning
         self.target_entropy = -action_dim  # A common heuristic is -dim(A)
         self.log_alpha = torch.tensor(0.0, dtype=torch.float32, requires_grad=True)
         self.alpha_optimizer = optim.Adam([self.log_alpha], lr=lr)

@@ -92,7 +92,7 @@ class ReplayBuffer:
             torch.FloatTensor(self.not_done[ind])
         )
 
-# SAC Agent
+# REDQSAC Agent
 class REDQSACAgent:
     def __init__(self, state_dim, action_dim, max_action, gamma, tau, lr, batch_size, buffer_size, nr_critics, utd, dropout=0, lam_s=1, lam_t = 1):
         self.state_dim = state_dim
@@ -124,7 +124,7 @@ class REDQSACAgent:
 
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=lr)
 
-        # **Automatic Entropy Tuning**
+        # Automatic Entropy Tuning
         self.target_entropy = -action_dim
         self.log_alpha = torch.tensor(0.0, dtype=torch.float32, requires_grad=True)
         self.alpha_optimizer = optim.Adam([self.log_alpha], lr=lr)
@@ -166,7 +166,7 @@ class REDQSACAgent:
                     q1_pi = critic(state, pi)
                     q_pi = torch.min(q_pi, q1_pi)
                 actor_loss = (self.log_alpha.exp() * log_prob - q_pi).mean()
-                #Below is code for CAPS rl smoothness thing
+                #Below is code for CAPS regularisation
                 #----------------------------------------------------
                 # Temporal smoothness
 
@@ -175,7 +175,7 @@ class REDQSACAgent:
                 # # Spacial smoothness
                 spacial_loss = self.lam_s*(torch.abs(mu - mu_bar)).mean()
                 #----------------------------------------------------
-                #CAPS stuff ends here
+                #CAPS ends here
                 total_actor_loss = actor_loss + temp_loss + spacial_loss
                 self.actor_optimizer.zero_grad()
                 total_actor_loss.backward()
@@ -209,12 +209,11 @@ class REDQSACAgent:
         self.actor.setmaxlogstd(value)
     
     def set_mode(self, mode="train"):
-        #Enable dropout
         if mode == "train":
             self.actor.train()
             for critic in self.critics:
                 critic.train()
-        #Disable dropout
+
         elif mode == "eval":
             self.actor.eval()
             for critic in self.critics:
