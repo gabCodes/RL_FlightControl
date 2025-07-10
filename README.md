@@ -7,7 +7,7 @@ Code used for my master's thesis, will be updated to be more user friendly (for 
 
 ## Requirements
 
-- All dependencies are listed in `requirements.txt`.
+- All dependencies are listed in `env_requirements.txt`.
 - **Network weights** are **not** uploaded due to size limits. If you're interested in the weights, reach out via GitHub and we’ll figure out a way to share them.
 - You can still generate your own weights using the code (see below).
 
