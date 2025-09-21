@@ -8,8 +8,9 @@ from scipy.signal import butter, filtfilt
 from citation import initialize, step, terminate
 
 # Check if short training cycle has all 2500 weights
-def sac_has_2500_weights(task, run_dir, ep_num, resolution):
+def sac_has_2500_weights(task: str, run_dir: str, ep_num: int, resolution: str) -> bool:
     step = 2500
+
     for episode in range(ep_num):
         ep_name = f'EP{episode + 1}'
         ep_dir = os.path.join(run_dir, ep_name)
@@ -18,6 +19,7 @@ def sac_has_2500_weights(task, run_dir, ep_num, resolution):
             ep_dir,
             f"{task}{resolution}SACSTEP_{step}.pt_actor.pth"
         )
+
         if not os.path.isfile(actor_path):
             print(f"Missing [{task}{resolution}SACSTEP_{step}.pt_actor.pth] actor file at step 2500 in {ep_name}")
             return False
@@ -25,8 +27,9 @@ def sac_has_2500_weights(task, run_dir, ep_num, resolution):
     return True
 
 # Check if short training cycle has all 2500 weights for REDQ
-def redq_has_2500_weights(task, run_dir, ep_num, resolution, NR_CRITICS, UTD):
+def redq_has_2500_weights(task: str, run_dir: str, ep_num: int, resolution: str, NR_CRITICS: int, UTD: int) -> bool:
     step = 2500
+
     for episode in range(ep_num):
         ep_name = f'EP{episode + 1}'
         ep_dir = os.path.join(run_dir, ep_name)
@@ -42,12 +45,13 @@ def redq_has_2500_weights(task, run_dir, ep_num, resolution, NR_CRITICS, UTD):
     return True
 
 # Applying low pass filter to ensure aircraft is able to follow
-def low_pass_filter(data, cutoff, order=4):
+def low_pass_filter(data: np.ndarray, cutoff: float, order: int = 4) -> np.ndarray:
     b, a = butter(order, cutoff, btype='low', analog=False)
+
     return filtfilt(b, a, data)
 
 # Randomly generating the references signals
-def generate_ref(duration, max_amp=0.26, num_terms=4, dt=0.01, offset=0.032):
+def generate_ref(duration: float, max_amp: float = 0.26, num_terms: int = 4, dt: float = 0.01, offset: float = 0.032) -> callable:
     fs = 1 / dt  # Sampling frequency
     t = np.arange(0, duration, dt)
 
@@ -74,14 +78,16 @@ def generate_ref(duration, max_amp=0.26, num_terms=4, dt=0.01, offset=0.032):
     def ref_function(t_query):
         # function lookup table
         idx = np.searchsorted(time_values, t_query, side='left')
+
         if idx >= len(signal_values):
             return signal_values[-1]  # return last value if index bigger than signal length
+        
         return signal_values[idx]
 
     return ref_function
 
 # Train SAC agent for pitch
-def train_sac_pitch(agent, task, ep_num, resolution, run_dir, ep_length, SAC=True, save=True):
+def train_pitch(agent: SACAgent | REDQSACAgent, task: str, ep_num: int, resolution: int, run_dir: str, ep_length: int, SAC: bool = True) -> None:
     if SAC == True:
         algo = "SAC"
     
@@ -120,15 +126,16 @@ def train_sac_pitch(agent, task, ep_num, resolution, run_dir, ep_length, SAC=Tru
                 break
             
             agent.replay_buffer.add(state_tensor, action, next_state, reward, done)
+
             if agent.replay_buffer.size > agent.batch_size:
                 _, _, _, _, _ = agent.update()
             
-            if save == True and episode + 1 <= 5 and count % 50 == 0:
+            if episode + 1 <= 5 and count % 50 == 0:
                 save_path = os.path.join(ep_dir, f"{task}50{algo}STEP_{count}.pt")
                 agent.save_weights(save_path)
                 print(f"Saved agent at step {count} to {save_path}")
 
-            if save == True and count % resolution == 0:
+            if count % resolution == 0:
                 save_path = os.path.join(ep_dir, f"{task}{resolution}{algo}STEP_{count}.pt")
                 agent.save_weights(save_path)
                 print(f"Saved agent at step {count} to {save_path}")
@@ -141,7 +148,7 @@ def train_sac_pitch(agent, task, ep_num, resolution, run_dir, ep_length, SAC=Tru
         terminate()
 
 # Train SAC agent for roll
-def train_sac_roll(agent, task, ep_num, resolution, run_dir, ep_length,SAC=True):
+def train_roll(agent: SACAgent | REDQSACAgent, task: str, ep_num: int, resolution: int, run_dir: str, ep_length: int, SAC: bool = True) -> None:
     if SAC == True:
         algo = "SAC"
     
@@ -160,9 +167,12 @@ def train_sac_roll(agent, task, ep_num, resolution, run_dir, ep_length,SAC=True)
         count = 1
         timestep = 0
         ref_function = generate_ref(ep_length, offset=0)
+
         initialize()
+
         for t in range(2000):
             output = step([-0.025,0,0,0,0,0,0,0,1449.775,1449.775])
+
         state = [np.rad2deg(output[6]), np.rad2deg(output[0])]
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
 
@@ -180,6 +190,7 @@ def train_sac_roll(agent, task, ep_num, resolution, run_dir, ep_length,SAC=True)
                 break
             
             agent.replay_buffer.add(state_tensor, action, next_state, reward, done)
+
             if agent.replay_buffer.size > agent.batch_size:
                 _, _, _, _, _ = agent.update()
             
@@ -201,7 +212,7 @@ def train_sac_roll(agent, task, ep_num, resolution, run_dir, ep_length,SAC=True)
         terminate()
 
 # Train SAC agent for pitch and roll
-def train_sac_pitchroll(agent, task, ep_num, resolution, run_dir, ep_length, SAC=True):
+def train_pitchroll(agent: SACAgent | REDQSACAgent, task: str, ep_num: int, resolution: int, run_dir: str, ep_length: float, SAC: bool = True) -> None:
     if SAC == True:
         algo = "SAC"
     
@@ -220,12 +231,14 @@ def train_sac_pitchroll(agent, task, ep_num, resolution, run_dir, ep_length, SAC
         timestep = 0
         ref_function = generate_ref(ep_length)
         ref_function2 = generate_ref(ep_length, offset = 0)
+
         initialize()
+
         for t in range(2000):
             output = step([-0.025,0,0,0,0,0,0,0,1449.775,1449.775])
+
         state = [np.rad2deg(0.032 - output[7]), np.rad2deg(output[1]), np.rad2deg(output[6]), np.rad2deg(output[0])]
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
-
 
         while not (done or terminated):
             #Define references
@@ -249,6 +262,7 @@ def train_sac_pitchroll(agent, task, ep_num, resolution, run_dir, ep_length, SAC
                 break
             
             agent.replay_buffer.add(state_tensor, action, next_state, reward, done)
+
             if agent.replay_buffer.size > agent.batch_size:
                 _, _, _, _, _ = agent.update()
             
@@ -269,21 +283,9 @@ def train_sac_pitchroll(agent, task, ep_num, resolution, run_dir, ep_length, SAC
 
         terminate()
 
-# Decide which task to train based on input
-def train(agent, task, ep_num, resolution, run_dir, ep_length, SAC=True):
-    if "PITCHROLL" in task:
-        train_sac_pitchroll(agent, task, ep_num, resolution, run_dir, ep_length, SAC=SAC)
-        return
-
-    if "PITCH" in task:
-        train_sac_pitch(agent, task, ep_num, resolution, run_dir, ep_length, SAC=SAC)
-        return
-    
-    if "ROLL" in task:
-        train_sac_roll(agent, task, ep_num, resolution, run_dir, ep_length, SAC=SAC)
-        return
-
-def evaluate_pitch(agent, plot=False, allstates=False, ep_length=20, eff=1.0, fault=False):
+# Evaluate SAC agent for pitch
+def evaluate_pitch(agent: SACAgent | REDQSACAgent, plot: bool = False, allstates: bool = False,
+                    ep_length: int = 20, eff: float =1.0, fault: bool = False) -> tuple[float, bool, float]:
     
     def get_piecewise_ref():
         def piecewise_ref(t):
@@ -302,11 +304,15 @@ def evaluate_pitch(agent, plot=False, allstates=False, ep_length=20, eff=1.0, fa
     terminated = False
     if eff < 1.0:
         ref = generate_ref(ep_length)
+
     else:
         ref = get_piecewise_ref()
+
     initialize()
+
     for t in range(2000):
         output = step([-0.025,0,0,0,0,0,0,0,1449.775,1449.775])
+
     state = [np.rad2deg(0.032 - output[7]), np.rad2deg(output[1])]
     state_tensor = torch.FloatTensor(state).unsqueeze(0)
 
@@ -328,6 +334,7 @@ def evaluate_pitch(agent, plot=False, allstates=False, ep_length=20, eff=1.0, fa
                           np.rad2deg(output[4]),np.rad2deg(output[5]),np.rad2deg(output[6]),np.rad2deg(output[7]),
                           np.rad2deg(output[8]),output[9]])
         action_list.append([np.rad2deg(action.item()),0])
+
         if fault == True:
             actuator_list.append(np.rad2deg(action.item()*eff))
         ref_list.append(np.rad2deg(pitch_ref))
@@ -340,8 +347,10 @@ def evaluate_pitch(agent, plot=False, allstates=False, ep_length=20, eff=1.0, fa
         done = timestep > ep_length
 
     terminate()
+
     state_names = ['p (deg/s)','q (deg/s)','r (deg/s)','$V_{TAS}$ (m/s)','$\\alpha$ (deg)','$\\beta$ (deg)','$\\phi$ (deg)',
         '$\\theta$ (deg)', '$\\psi$ (deg)', '$h_e$ (m)']
+    
     if plot == True:
         if allstates == True:
             if fault == False:
@@ -353,10 +362,14 @@ def evaluate_pitch(agent, plot=False, allstates=False, ep_length=20, eff=1.0, fa
                 state_plotter("pitch", time_list, ref_list, state_list, action_list, state_names, zoom=True)
             else:
                 state_plotter("pitch", time_list, ref_list, state_list, action_list, state_names, zoom=False, extra=actuator_list)
+
     roughness_factor = np.sum(np.abs(action_list))
+
     return ep_reward, terminated, roughness_factor
 
-def evaluate_roll(agent, plot=False, allstates=False, ep_length=20, eff=1.0, fault=False):
+# Evaluate SAC agent for roll
+def evaluate_roll(agent: SACAgent | REDQSACAgent, plot: bool = False, allstates: bool = False,
+                   ep_length: float = 20, eff: float = 1.0, fault: bool = False) -> tuple[float, bool, float]:
     
     def get_piecewise_ref():
         def piecewise_ref(t):
@@ -372,16 +385,20 @@ def evaluate_roll(agent, plot=False, allstates=False, ep_length=20, eff=1.0, fau
     timestep = 0
     done = False
     terminated = False
+
     if eff < 1.0:
         ref = generate_ref(ep_length, offset=0)
+
     else:
         ref = get_piecewise_ref()
+
     initialize()
+
     for t in range(2000):
         output = step([-0.025,0,0,0,0,0,0,0,1449.775,1449.775])
+
     state = [np.rad2deg(output[6]), np.rad2deg(output[0])]
     state_tensor = torch.FloatTensor(state).unsqueeze(0)
-
 
     while not (done or terminated):
         roll_ref = ref(timestep)
@@ -399,6 +416,7 @@ def evaluate_roll(agent, plot=False, allstates=False, ep_length=20, eff=1.0, fau
                           np.rad2deg(output[4]),np.rad2deg(output[5]),np.rad2deg(output[6]),np.rad2deg(output[7]),
                           np.rad2deg(output[8]),output[9]])
         action_list.append([0,np.rad2deg(action.item())])
+
         if fault == True:
             actuator_list.append(np.rad2deg(action.item()*eff))
         ref_list.append(np.rad2deg(roll_ref))
@@ -411,8 +429,10 @@ def evaluate_roll(agent, plot=False, allstates=False, ep_length=20, eff=1.0, fau
         done = timestep > ep_length
 
     terminate()
+
     state_names = ['p (deg/s)','q (deg/s)','r (deg/s)','$V_{TAS}$ (m/s)','$\\alpha$ (deg)','$\\beta$ (deg)','$\\phi$ (deg)',
         '$\\theta$ (deg)', '$\\psi$ (deg)', '$h_e$ (m)']
+    
     if plot == True:
         if allstates == True:
             if fault == False:
@@ -424,10 +444,14 @@ def evaluate_roll(agent, plot=False, allstates=False, ep_length=20, eff=1.0, fau
                 state_plotter("roll", time_list, ref_list, state_list, action_list, state_names, zoom=True)
             else:
                 state_plotter("roll", time_list, ref_list, state_list, action_list, state_names, zoom=True)
+
     roughness_factor = np.sum(np.abs(action_list))
+
     return ep_reward, terminated, roughness_factor
 
-def evaluate_pitchroll(agent, plot=False, allstates=False, ep_length=20):
+# Evaluate SAC agent for pitch and roll
+def evaluate_pitchroll(agent: SACAgent | REDQSACAgent, plot: bool = False, allstates: bool = False,
+                        ep_length: float = 20) -> tuple[float, bool, float]:
     def piecewise_ref(t):
         return 0.12*np.sin(0.4*t) + 0.032
     
@@ -442,9 +466,12 @@ def evaluate_pitchroll(agent, plot=False, allstates=False, ep_length=20):
     timestep = 0
     done = False
     terminated = False
+
     initialize()
+
     for t in range(2000):
         output = step([-0.025,0,0,0,0,0,0,0,1449.775,1449.775])
+
     state = [np.rad2deg(0.032 - output[7]), np.rad2deg(output[1]), np.rad2deg(output[6]), np.rad2deg(output[0])]
     state_tensor = torch.FloatTensor(state).unsqueeze(0)
 
@@ -485,16 +512,34 @@ def evaluate_pitchroll(agent, plot=False, allstates=False, ep_length=20):
 
     state_names = ['p (deg/s)','q (deg/s)','r (deg/s)','$V_{TAS}$ (m/s)','$\\alpha$ (deg)','$\\beta$ (deg)','$\\phi$ (deg)',
         '$\\theta$ (deg)', '$\\psi$ (deg)', '$h_e$ (m)']
+    
     if plot == True:
         if allstates == True:
             state_plotter("pitchroll", time_list, ref_list, state_list, action_list, state_names, zoom=False)
 
         else:
             state_plotter("pitchroll", time_list, ref_list, state_list, action_list, state_names, zoom=True)
+
     roughness_factor = np.sum(np.abs(action_list))
+
     return ep_reward, terminated, roughness_factor
 
-def evaluate_agent(agent, task, plot=False, allstates=False):
+# Decide which task to train based on input
+def train(agent: SACAgent | REDQSACAgent, task: str, ep_num: int, resolution: int, run_dir: str, ep_length: float, SAC: bool = True) -> None:
+    if "PITCHROLL" in task:
+        train_pitchroll(agent, task, ep_num, resolution, run_dir, ep_length, SAC=SAC)
+        return
+
+    if "PITCH" in task:
+        train_pitch(agent, task, ep_num, resolution, run_dir, ep_length, SAC=SAC)
+        return
+    
+    if "ROLL" in task:
+        train_roll(agent, task, ep_num, resolution, run_dir, ep_length, SAC=SAC)
+        return
+
+# Decide which task to evaluate based on input
+def evaluate_agent(agent: SACAgent | REDQSACAgent, task: str, plot: bool = False, allstates: bool =False) -> float:
     if "PITCHROLL" in task:
         ep_reward, _, _ = evaluate_pitchroll(agent, plot=plot, allstates=allstates)
         return ep_reward
@@ -508,7 +553,7 @@ def evaluate_agent(agent, task, plot=False, allstates=False):
         return ep_reward
 
 # Train 30 SAC agents and save their weights
-def sac_30_runs(task, resolution, ep_num, training=False):
+def sac_30_runs(task: str, resolution: int, ep_num: int, training: bool = False) -> None:
     GAMMA	= 0.989
     TAU	= 0.07645
     LR	= 0.00063
@@ -519,9 +564,11 @@ def sac_30_runs(task, resolution, ep_num, training=False):
     ep_length = 25
     caps_s = 5
     caps_t = 15
+
     if "PITCHROLL" in task:
         caps_s = 30
         caps_t = 60
+
     for run_nr in range(nr_runs):
         if "PITCHROLL" in task:
             agent = SACAgent(
@@ -558,16 +605,20 @@ def sac_30_runs(task, resolution, ep_num, training=False):
             train(agent, task, ep_num, resolution, run_dir, ep_length=ep_length, SAC=True)
     
     with open(f'SAC30{task}{resolution}.txt', 'a') as f:
+
         for run_nr in range(nr_runs):
             runreward_list = []
             run_name = f'RUN{run_nr+1}'
             run_dir = os.path.join("checkpoints", run_name)
+
             if not sac_has_2500_weights(task, run_dir, ep_num, resolution):
                 print(f"Skipping run {run_name}: Missing step-2500 weights.")
                 continue
+
             for episode in range(ep_num):
                 ep_name = f'EP{episode+1}'
                 ep_dir = os.path.join(run_dir, ep_name)
+
                 for step in range(resolution, int(ep_length*100) + 1, resolution):
                     actor_path = os.path.join(ep_dir, f"{task}{resolution}SACSTEP_{step}.pt_actor.pth")
                     critic_path = os.path.join(ep_dir, f"{task}{resolution}SACSTEP_{step}.pt_critic.pth")
@@ -575,9 +626,11 @@ def sac_30_runs(task, resolution, ep_num, training=False):
                     step_reward = evaluate_agent(agent, task)
                     runreward_list.append(step_reward.tolist())
                     print(f"Run: {run_nr + 1}, Episode: {episode + 1}, Step: {step}, Reward: {step_reward}")
+
             f.write(f"{runreward_list}\n")
+
 # Train 30 REDQ agents and save their weights
-def redq_30_runs(task, resolution, ep_num, training=False, q_nr = 3):
+def redq_30_runs(task: str, resolution: int, ep_num: int, training: bool = False, q_nr: int = 3) -> None:
 
     GAMMA	= 0.989
     TAU	= 0.07645
@@ -592,9 +645,11 @@ def redq_30_runs(task, resolution, ep_num, training=False, q_nr = 3):
     ep_length = 25
     caps_s = 5
     caps_t = 15
+
     if "PITCHROLL" in task:
         caps_s = 30
         caps_t = 60
+
     for run_nr in range(nr_runs):
         if "PITCHROLL" in task:
             agent = REDQSACAgent(
@@ -637,31 +692,44 @@ def redq_30_runs(task, resolution, ep_num, training=False, q_nr = 3):
             train(agent, task, ep_num, resolution, run_dir, ep_length=ep_length, SAC=False)
     
     with open(f'RED{q_nr}Q30{task}{resolution}.txt', 'a') as f:
+
         for run_nr in range(nr_runs):
             runreward_list = []
             run_name = f'RUN{run_nr+1}'
             run_dir = os.path.join("checkpoints", run_name)
+
             if not redq_has_2500_weights(task,run_dir, ep_num, resolution, NR_CRITICS, UTD):
                 print(f"Skipping run {run_name}: Missing step_2500 weights.")
                 continue
+
             for episode in range(ep_num):
                 ep_name = f'EP{episode+1}'
                 ep_dir = os.path.join(run_dir, ep_name)
+
                 for step in range(resolution, int(ep_length*100) + 1, resolution):
                     actor_path = os.path.join(ep_dir, f"{task}{resolution}RED{NR_CRITICS}Q{UTD}STEP_{step}.pt_actor.pth")
                     critics_path = []
+
                     for i in range(NR_CRITICS):
                         critic_path = os.path.join(ep_dir, f"{task}{resolution}RED{NR_CRITICS}Q{UTD}STEP_{step}.pt_critic{i+1}.pth")
                         critics_path.append(critic_path)
+
                     agent.load_weights(actor_path, critics_path)
                     step_reward = evaluate_agent(agent, task)
                     runreward_list.append(step_reward.tolist())
                     print(f"Run: {run_nr + 1}, Episode: {episode + 1}, Step: {step}, Reward: {step_reward}")
+
             f.write(f"{runreward_list}\n")
 
-# redq_30_runs("v2PITCH", 250, 10, training=True, q_nr=5)
-# redq_30_runs("v2PITCH", 50, 5, training=False, q_nr=5)
-# redq_30_runs("v2ROLL", 250, 10, training=True, q_nr=5)
-# redq_30_runs("v2ROLL", 50, 5, training=False, q_nr=5)
-# redq_30_runs("v2PITCHROLL", 250, 10, training=True, q_nr=5)
-# redq_30_runs("v2PITCHROLL", 50, 5, training=False, q_nr=5)
+if __name__ == "__main__":
+    # The task names must have either PITCH, ROLL or PITCHROLL in them
+    # When training=True, the agents will be trained. Set to False to only evaluate already trained agents
+    
+    redq_30_runs("v3PITCH", 250, 10, training=True, q_nr=5)
+    redq_30_runs("v3PITCH", 50, 5, training=False, q_nr=5)
+
+    # redq_30_runs("v2ROLL", 250, 10, training=True, q_nr=5)
+    # redq_30_runs("v3ROLL", 250, 10, training=True, q_nr=3)
+
+    # redq_30_runs("v2PITCHROLL", 250, 10, training=True, q_nr=5)
+    # redq_30_runs("v3PITCHROLL", 250, 10, training=True, q_nr=3)
