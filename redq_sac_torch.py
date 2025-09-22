@@ -3,30 +3,30 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
-import random
 
 # Actor network
 class Actor(nn.Module):
-    def __init__(self, state_dim, action_dim, max_action, dropout):
+    def __init__(self, state_dim: int, action_dim: int, max_action: float, dropout: float):
         super(Actor, self).__init__()
-        self.l1 = nn.Linear(state_dim, 256)
-        self.l2 = nn.Linear(256, 256)
-        self.mean = nn.Linear(256, action_dim)
-        self.log_std = nn.Linear(256, action_dim)
+        self.l1 = nn.Linear(state_dim, 64)
+        self.l2 = nn.Linear(64, 64)
+        self.mean = nn.Linear(64, action_dim)
+        self.log_std = nn.Linear(64, action_dim)
         self.max_action = max_action
         self.dropout = nn.Dropout(p=dropout)
         self.max_logstd = 2
 
-    def forward(self, state):
+    def forward(self, state: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         x = F.relu(self.l1(state))
         x = self.dropout(x)
         x = F.relu(self.l2(x))
         x = self.dropout(x)
         mean = self.mean(x)
         log_std = torch.clamp(self.log_std(x), min=-20, max=self.max_logstd)
+
         return mean, log_std
 
-    def sample(self, state):
+    def sample(self, state: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mean, log_std = self.forward(state)
         std = log_std.exp()
         normal = torch.distributions.Normal(mean, std)
@@ -38,19 +38,19 @@ class Actor(nn.Module):
 
         return mu, action, log_prob
     
-    def setmaxlogstd(self, value):
+    def setmaxlogstd(self, value: float) -> None:
         self.max_logstd = value
 
 # Critic network
 class Critic(nn.Module):
-    def __init__(self, state_dim, action_dim, dropout):
+    def __init__(self, state_dim: int, action_dim: int, dropout: float):
         super(Critic, self).__init__()
-        self.l1 = nn.Linear(state_dim + action_dim, 256)
-        self.l2 = nn.Linear(256, 256)
-        self.l3 = nn.Linear(256, 1)
+        self.l1 = nn.Linear(state_dim + action_dim, 64)
+        self.l2 = nn.Linear(64, 64)
+        self.l3 = nn.Linear(64, 1)
         self.dropout = nn.Dropout(p=dropout)
 
-    def forward(self, state, action):
+    def forward(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         sa = torch.cat([state, action], dim=1)
 
         q1 = F.relu(self.l1(sa))
@@ -63,7 +63,7 @@ class Critic(nn.Module):
 
 # Replay buffer
 class ReplayBuffer:
-    def __init__(self, state_dim, action_dim, buffer_size):
+    def __init__(self, state_dim: int, action_dim: int, buffer_size: int):
         self.max_size = buffer_size
         self.ptr = 0
         self.size = 0
@@ -73,7 +73,7 @@ class ReplayBuffer:
         self.reward = np.zeros((buffer_size, 1))
         self.not_done = np.zeros((buffer_size, 1))
 
-    def add(self, state, action, next_state, reward, done):
+    def add(self, state: np.ndarray, action: np.ndarray, next_state: np.ndarray, reward: float, done: bool) -> None:
         self.state[self.ptr] = state
         self.action[self.ptr] = action
         self.next_state[self.ptr] = next_state
@@ -82,8 +82,9 @@ class ReplayBuffer:
         self.ptr = (self.ptr + 1) % self.max_size
         self.size = min(self.size + 1, self.max_size)
 
-    def sample(self, batch_size):
+    def sample(self, batch_size: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         ind = np.random.randint(0, self.size, size=batch_size)
+
         return (
             torch.FloatTensor(self.state[ind]),
             torch.FloatTensor(self.action[ind]),
@@ -94,7 +95,9 @@ class ReplayBuffer:
 
 # REDQSAC agent
 class REDQSACAgent:
-    def __init__(self, state_dim, action_dim, max_action, gamma, tau, lr, batch_size, buffer_size, nr_critics, utd, dropout=0, lam_s=1, lam_t = 1):
+    def __init__(self, state_dim: int, action_dim: int, max_action: float, gamma: float, tau: float, lr: float,
+                  batch_size: int, buffer_size: int, nr_critics: int, utd: int, dropout: float = 0, lam_s: float = 1,
+                    lam_t: float = 1):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.max_action = max_action
@@ -131,7 +134,7 @@ class REDQSACAgent:
 
         self.replay_buffer = ReplayBuffer(state_dim, action_dim, buffer_size)
 
-    def update(self):
+    def update(self) -> tuple[float, float, float, float, float]:
         for _ in range(self.utd):
             # Sample a batch from the replay buffer
             state, action, next_state, reward, not_done = self.replay_buffer.sample(self.batch_size)
@@ -158,69 +161,84 @@ class REDQSACAgent:
                 for param, target_param in zip(self.critics[i].parameters(), self.t_critics[i].parameters()):
                     target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
              
-            # Update actor
-            if self.replay_buffer.size > self.batch_size:
-                with torch.no_grad():
-                    mu_next, _, _ = self.actor.sample(next_state)
-                    spacial_std = torch.full((self.state_dim,), 0.01)
-                    mu_bar, _, _ = self.actor.sample(torch.normal(state, spacial_std))
-                
-                mu, pi, log_prob = self.actor.sample(state)
-                q_pi = self.critics[0](state, pi)
-                for critic in self.critics:
-                    q1_pi = critic(state, pi)
-                    q_pi = torch.min(q_pi, q1_pi)
-                actor_loss = (self.log_alpha.exp() * log_prob - q_pi).mean()
-                #Below is code for CAPS regularisation
-                #----------------------------------------------------
-                # Temporal smoothness
+        # Update actor
+        if self.replay_buffer.size > self.batch_size:
+            with torch.no_grad():
+                mu_next, _, _ = self.actor.sample(next_state)
+                spacial_std = torch.full((self.state_dim,), 0.01)
+                mu_bar, _, _ = self.actor.sample(torch.normal(state, spacial_std))
+            
+            mu, pi, log_prob = self.actor.sample(state)
+            q_pi = self.critics[0](state, pi)
+            for critic in self.critics:
+                q1_pi = critic(state, pi)
+                q_pi = torch.min(q_pi, q1_pi)
+            actor_loss = (self.log_alpha.exp() * log_prob - q_pi).mean()
 
-                temp_loss = self.lam_t*(torch.abs(mu - mu_next)).mean()
+            #Below is code for CAPS regularisation
+            #----------------------------------------------------
+            # Temporal smoothness
 
-                # # Spacial smoothness
-                spacial_loss = self.lam_s*(torch.abs(mu - mu_bar)).mean()
-                #----------------------------------------------------
-                #CAPS ends here
-                total_actor_loss = actor_loss + temp_loss + spacial_loss
-                self.actor_optimizer.zero_grad()
-                total_actor_loss.backward()
-                self.actor_optimizer.step()
+            temp_loss = self.lam_t*(torch.abs(mu - mu_next)).mean()
 
-                alpha_loss = -(self.log_alpha * (log_prob + self.target_entropy).detach()).mean()
-                self.alpha_optimizer.zero_grad()
-                alpha_loss.backward()
-                self.alpha_optimizer.step()
+            # # Spacial smoothness
+            spacial_loss = self.lam_s*(torch.abs(mu - mu_bar)).mean()
+            #----------------------------------------------------
+            #CAPS ends here
+
+            total_actor_loss = actor_loss + temp_loss + spacial_loss
+            self.actor_optimizer.zero_grad()
+            total_actor_loss.backward()
+            self.actor_optimizer.step()
+
+            alpha_loss = -(self.log_alpha * (log_prob + self.target_entropy).detach()).mean()
+            self.alpha_optimizer.zero_grad()
+            alpha_loss.backward()
+            self.alpha_optimizer.step()
+
         return critic_loss.item(), critic_loss.item(), actor_loss.item(), temp_loss.item(), spacial_loss.item()
 
-    def save_weights(self, path_prefix):
+    # Save the weights
+    def save_weights(self, path_prefix: str) -> None:
         torch.save(self.actor.state_dict(), f"{path_prefix}_actor.pth")
+
         for i in range(len(self.critics)):
             torch.save(self.critics[i].state_dict(), f"{path_prefix}_critic{i+1}.pth")
-    
-    def load_weights(self, actor_file, critic_list):
+
+    # Load the weights
+    def load_weights(self, actor_file: str, critic_list:list[str]) -> None:
         self.actor.load_state_dict(torch.load(actor_file,weights_only=True))
         self.actor.eval()
+
         for i in range(len(critic_list)):
             critic = self.critics[i]
             critic.load_state_dict(torch.load(critic_list[i],weights_only=True))
             critic.eval()
 
-    def setlog(self, value):
+    # Set log std
+    def setlog(self, value: float) -> None:
         self.actor.setmaxlogstd(value)
-    
-    def set_mode(self, mode="train"):
+
+    # Turn on/off training mode
+    def set_mode(self, mode: str = "train") -> None:
         if mode == "train":
             self.actor.train()
             for critic in self.critics:
                 critic.train()
+            
+            return
 
         elif mode == "eval":
             self.actor.eval()
             for critic in self.critics:
                 critic.eval()
+        
+        return
     
-    def fetchutd(self):
+    # Fetch UTD
+    def fetchutd(self) -> int:
         return self.utd
     
-    def fetch_nrcritics(self):
+    # Fetch number of critics
+    def fetch_nrcritics(self) -> int:
         return self.nr_critics
