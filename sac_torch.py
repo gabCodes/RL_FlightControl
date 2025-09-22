@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 # Actor network
 class Actor(nn.Module):
-    def __init__(self, state_dim, action_dim, max_action):
+    def __init__(self, state_dim: int, action_dim: int, max_action: float):
         super(Actor, self).__init__()
         self.l1 = nn.Linear(state_dim, 64)
         self.l2 = nn.Linear(64, 64)
@@ -16,14 +16,14 @@ class Actor(nn.Module):
         self.max_action = max_action
 
 
-    def forward(self, state):
+    def forward(self, state: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         x = F.relu(self.l1(state))
         x = F.relu(self.l2(x))
         mean = self.mean(x)
         log_std = torch.clamp(self.log_std(x), min=-20, max=2)
         return mean, log_std
 
-    def sample(self, state):
+    def sample(self, state: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mean, log_std = self.forward(state)
         std = log_std.exp()
         normal = torch.distributions.Normal(mean, std)
@@ -37,7 +37,7 @@ class Actor(nn.Module):
 
 # Critic network
 class Critic(nn.Module):
-    def __init__(self, state_dim, action_dim):
+    def __init__(self, state_dim: int, action_dim: int):
         super(Critic, self).__init__()
         # Q1 network
         self.l1 = nn.Linear(state_dim + action_dim, 64)
@@ -49,7 +49,7 @@ class Critic(nn.Module):
         self.l5 = nn.Linear(64, 64)
         self.l6 = nn.Linear(64, 1)
 
-    def forward(self, state, action):
+    def forward(self, state: torch.Tensor, action: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         sa = torch.cat([state, action], dim=1)
 
         q1 = F.relu(self.l1(sa))
@@ -64,7 +64,7 @@ class Critic(nn.Module):
 
 # Replay buffer
 class ReplayBuffer:
-    def __init__(self, state_dim, action_dim, buffer_size):
+    def __init__(self, state_dim: int, action_dim: int, buffer_size: int):
         self.max_size = buffer_size
         self.ptr = 0
         self.size = 0
@@ -74,7 +74,7 @@ class ReplayBuffer:
         self.reward = np.zeros((buffer_size, 1))
         self.not_done = np.zeros((buffer_size, 1))
 
-    def add(self, state, action, next_state, reward, done):
+    def add(self, state: np.ndarray, action: np.ndarray, next_state: np.ndarray, reward: float, done: bool) -> None:
         self.state[self.ptr] = state
         self.action[self.ptr] = action
         self.next_state[self.ptr] = next_state
@@ -83,8 +83,9 @@ class ReplayBuffer:
         self.ptr = (self.ptr + 1) % self.max_size
         self.size = min(self.size + 1, self.max_size)
 
-    def sample(self, batch_size):
+    def sample(self, batch_size: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         ind = np.random.randint(0, self.size, size=batch_size)
+
         return (
             torch.FloatTensor(self.state[ind]),
             torch.FloatTensor(self.action[ind]),
@@ -95,7 +96,8 @@ class ReplayBuffer:
 
 # SAC agent
 class SACAgent:
-    def __init__(self, state_dim, action_dim, max_action, gamma, tau, lr, batch_size, buffer_size, lam_s=1, lam_t=1):
+    def __init__(self, state_dim: int, action_dim: int, max_action: float, gamma: float, tau: float, lr: float,
+                  batch_size: int, buffer_size: int, lam_s: float = 1, lam_t: float = 1):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.max_action = max_action
@@ -121,7 +123,7 @@ class SACAgent:
 
         self.replay_buffer = ReplayBuffer(state_dim, action_dim, buffer_size)
 
-    def update(self):
+    def update(self) -> tuple[float, float, float, float, float]:
         # Sample a batch from the replay buffer
         state, action, next_state, reward, not_done = self.replay_buffer.sample(self.batch_size)
 
@@ -166,8 +168,10 @@ class SACAgent:
             #----------------------------------------------------
             #CAPS stuff ends here
             total_actor_loss = actor_loss + temp_loss + spacial_loss
+
             if torch.isnan(actor_loss):
                 print("NaN detected in actor loss!")
+
             self.actor_optimizer.zero_grad()
             total_actor_loss.backward()
             self.actor_optimizer.step()
@@ -183,11 +187,11 @@ class SACAgent:
 
         return c1_loss.item(), c2_loss.item(), actor_loss.item(), temp_loss.item(), spacial_loss.item()
 
-    def save_weights(self, path_prefix):
+    def save_weights(self, path_prefix: str) -> None:
         torch.save(self.actor.state_dict(), f"{path_prefix}_actor.pth")
         torch.save(self.critic.state_dict(), f"{path_prefix}_critic.pth")
     
-    def load_weights(self, actor_file, critic_file):
+    def load_weights(self, actor_file: str, critic_file: str) -> None:
         self.actor.load_state_dict(torch.load(actor_file,weights_only=True))
         self.actor.eval()
         self.critic.load_state_dict(torch.load(critic_file,weights_only=True))
