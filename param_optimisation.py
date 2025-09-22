@@ -89,7 +89,7 @@ def redq_objective(trial) -> float:
     reward_list = []
 
     for episode in range(num_episodes):
-        train_sac_pitch(agent, "", ep_num=1, resolution=50, run_dir="", ep_length=ep_length, SAC=False)
+        train_pitch(agent, "", ep_num=1, resolution=50, run_dir="", ep_length=ep_length, SAC=False)
         ep_reward, _, _ = evaluate_pitch(agent)
         reward_list.append(ep_reward.tolist())
         print(f"Episode: {episode + 1}, Reward: {ep_reward}")
