@@ -5,6 +5,7 @@ from signals import generate_ref, roll_eval_ref
 
 class RollHandler(TaskHandler):
     def __init__(self, agent, ep_length):
+        self.type = "Roll"
         self.agent = agent
         self.ep_length = ep_length
         self.ref_function = generate_ref(self.ep_length, offset = 0)
@@ -25,6 +26,13 @@ class RollHandler(TaskHandler):
     # Sample stochastic action from the policy, the -0.025 entry is the elevator trim input
     def sample_action(self, state):
         _, action, _ = self.agent.actor.sample(state)
+        action = action.detach().cpu().numpy()[0]
+        
+        return [-0.025, action.item(), 0, 0, 0, 0, 0, 0, 1449.775, 1449.775], action
+    
+    # Sample mean action from the policy
+    def mean_action(self, state):
+        action, _, _ = self.agent.actor.sample(state)
         action = action.detach().cpu().numpy()[0]
         
         return [-0.025, action.item(), 0, 0, 0, 0, 0, 0, 1449.775, 1449.775], action

@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from .base import TaskHandler
 import torch
 import numpy as np
@@ -6,6 +5,7 @@ from signals import generate_ref, pitch_eval_ref
 
 class PitchHandler(TaskHandler):
     def __init__(self, agent, ep_length):
+        self.type = "Pitch"
         self.agent = agent
         self.ep_length = ep_length
         self.ref_function = generate_ref(self.ep_length, offset = 0.032)
@@ -26,6 +26,13 @@ class PitchHandler(TaskHandler):
     # Sample stochastic action from the policy, the entry is the roll trim input
     def sample_action(self, state):
         _, action, _ = self.agent.actor.sample(state)
+        action = action.detach().cpu().numpy()[0]
+        
+        return [action.item(), 0, 0, 0, 0, 0, 0, 0, 1449.775, 1449.775], action
+    
+    # Sample mean action from the policy
+    def mean_action(self, state):
+        action, _, _ = self.agent.actor.sample(state)
         action = action.detach().cpu().numpy()[0]
         
         return [action.item(), 0, 0, 0, 0, 0, 0, 0, 1449.775, 1449.775], action

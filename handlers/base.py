@@ -24,6 +24,11 @@ class TaskHandler(ABC):
         raise NotImplementedError
     
     @abstractmethod
+    def mean_action(self, state):
+        """Return the mean action."""
+        raise NotImplementedError
+    
+    @abstractmethod
     def state_list(self, output):
         """Return the list of states."""
         raise NotImplementedError

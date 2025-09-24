@@ -5,6 +5,7 @@ from signals import generate_ref, pitch_eval_ref, roll_eval_ref
 
 class PitchRollHandler(TaskHandler):
     def __init__(self, agent, ep_length):
+        self.type = "PitchRoll"
         self.agent = agent
         self.ep_length = ep_length
         self.ref_pitch = generate_ref(self.ep_length, offset = 0.032)
@@ -28,6 +29,15 @@ class PitchRollHandler(TaskHandler):
     # Sample stochastic action from the policy
     def sample_action(self, state):
         _, action, _ = self.agent.actor.sample(state)
+        action = action.detach().cpu().numpy()[0]
+        pitch_action = action[0].item()
+        roll_action = action[1].item()
+
+        return [pitch_action, roll_action, 0, 0, 0, 0, 0, 0, 1449.775, 1449.775], action
+    
+    # Sample mean action from the policy
+    def mean_action(self, state):
+        action, _, _ = self.agent.actor.sample(state)
         action = action.detach().cpu().numpy()[0]
         pitch_action = action[0].item()
         roll_action = action[1].item()
