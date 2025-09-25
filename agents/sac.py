@@ -3,15 +3,16 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
+from config import Config
 
 # Actor network
 class Actor(nn.Module):
-    def __init__(self, state_dim: int, action_dim: int, max_action: float):
+    def __init__(self, state_dim: int, action_dim: int, max_action: float, hidden_dim: int):
         super(Actor, self).__init__()
-        self.l1 = nn.Linear(state_dim, 64)
-        self.l2 = nn.Linear(64, 64)
-        self.mean = nn.Linear(64, action_dim)
-        self.log_std = nn.Linear(64, action_dim)
+        self.l1 = nn.Linear(state_dim, hidden_dim)
+        self.l2 = nn.Linear(hidden_dim, hidden_dim)
+        self.mean = nn.Linear(hidden_dim, action_dim)
+        self.log_std = nn.Linear(hidden_dim, action_dim)
         self.max_action = max_action
 
 
@@ -36,17 +37,17 @@ class Actor(nn.Module):
 
 # Critic network
 class Critic(nn.Module):
-    def __init__(self, state_dim: int, action_dim: int):
+    def __init__(self, state_dim: int, action_dim: int, hidden_dim: int):
         super(Critic, self).__init__()
         # Q1 network
-        self.l1 = nn.Linear(state_dim + action_dim, 64)
-        self.l2 = nn.Linear(64, 64)
-        self.l3 = nn.Linear(64, 1)
+        self.l1 = nn.Linear(state_dim + action_dim, hidden_dim)
+        self.l2 = nn.Linear(hidden_dim, hidden_dim)
+        self.l3 = nn.Linear(hidden_dim, 1)
 
         # Q2 network
-        self.l4 = nn.Linear(state_dim + action_dim, 64)
-        self.l5 = nn.Linear(64, 64)
-        self.l6 = nn.Linear(64, 1)
+        self.l4 = nn.Linear(state_dim + action_dim, hidden_dim)
+        self.l5 = nn.Linear(hidden_dim, hidden_dim)
+        self.l6 = nn.Linear(hidden_dim, 1)
 
     def forward(self, state: torch.Tensor, action: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         sa = torch.cat([state, action], dim=1)
@@ -95,33 +96,33 @@ class ReplayBuffer:
 
 # SAC agent
 class SACAgent:
-    def __init__(self, state_dim: int, action_dim: int, max_action: float, gamma: float, tau: float, lr: float,
-                  batch_size: int, buffer_size: int, lam_s: float = 1, lam_t: float = 1):
-        self.state_dim = state_dim
-        self.action_dim = action_dim
-        self.max_action = max_action
-        self.gamma = gamma
-        self.tau = tau
-        self.batch_size = batch_size
-        self.buffer_size = buffer_size
-        self.lam_s = lam_s
-        self.lam_t = lam_t
-        self.type = "SAC"
+    def __init__(self, task: str, config: Config):
+        self.state_dim = config.tasks[task].state_dim
+        self.action_dim = config.tasks[task].action_dim
+        self.hidden_dim = config.globals.hidden_dim
+        self.max_action = config.globals.max_action
+        self.lr = config.globals.lr
+        self.gamma = config.globals.gamma
+        self.tau = config.globals.tau
+        self.batch_size = config.globals.batch_size
+        self.buffer_size = config.globals.buffer_size
+        self.lam_s = config.tasks[task].lam_s
+        self.lam_t = config.tasks[task].lam_t
 
-        self.actor = Actor(state_dim, action_dim, max_action).to("cpu")
-        self.critic = Critic(state_dim, action_dim).to("cpu")
-        self.critic_target = Critic(state_dim, action_dim).to("cpu")
+        self.actor = Actor(self.state_dim, self.action_dim, self.max_action, self.hidden_dim).to("cpu")
+        self.critic = Critic(self.state_dim, self.action_dim, self.hidden_dim).to("cpu")
+        self.critic_target = Critic(self.state_dim, self.action_dim, self.hidden_dim).to("cpu")
         self.critic_target.load_state_dict(self.critic.state_dict())
 
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=lr)
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=lr)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.lr)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.lr)
 
         # Automatic entropy tuning
-        self.target_entropy = -action_dim  # Common heuristic is -dim(A)
+        self.target_entropy = -self.action_dim  # Common heuristic is -dim(A)
         self.log_alpha = torch.tensor(0.0, dtype=torch.float32, requires_grad=True)
-        self.alpha_optimizer = optim.Adam([self.log_alpha], lr=lr)
+        self.alpha_optimizer = optim.Adam([self.log_alpha], lr=self.lr)
 
-        self.replay_buffer = ReplayBuffer(state_dim, action_dim, buffer_size)
+        self.replay_buffer = ReplayBuffer(self.state_dim, self.action_dim, self.buffer_size)
 
     def update(self) -> tuple[float, float, float, float, float]:
         # Sample a batch from the replay buffer

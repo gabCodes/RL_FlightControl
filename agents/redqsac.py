@@ -3,15 +3,16 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import numpy as np
+from config import Config
 
 # Actor network
 class Actor(nn.Module):
-    def __init__(self, state_dim: int, action_dim: int, max_action: float, dropout: float):
+    def __init__(self, state_dim: int, action_dim: int, max_action: float, hidden_dim: int, dropout: float):
         super(Actor, self).__init__()
-        self.l1 = nn.Linear(state_dim, 64)
-        self.l2 = nn.Linear(64, 64)
-        self.mean = nn.Linear(64, action_dim)
-        self.log_std = nn.Linear(64, action_dim)
+        self.l1 = nn.Linear(state_dim, hidden_dim)
+        self.l2 = nn.Linear(hidden_dim, hidden_dim)
+        self.mean = nn.Linear(hidden_dim, action_dim)
+        self.log_std = nn.Linear(hidden_dim, action_dim)
         self.max_action = max_action
         self.dropout = nn.Dropout(p=dropout)
         self.max_logstd = 2
@@ -43,11 +44,11 @@ class Actor(nn.Module):
 
 # Critic network
 class Critic(nn.Module):
-    def __init__(self, state_dim: int, action_dim: int, dropout: float):
+    def __init__(self, state_dim: int, action_dim: int, hidden_dim: int, dropout: float):
         super(Critic, self).__init__()
-        self.l1 = nn.Linear(state_dim + action_dim, 64)
-        self.l2 = nn.Linear(64, 64)
-        self.l3 = nn.Linear(64, 1)
+        self.l1 = nn.Linear(state_dim + action_dim, hidden_dim)
+        self.l2 = nn.Linear(hidden_dim, hidden_dim)
+        self.l3 = nn.Linear(hidden_dim, 1)
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
@@ -95,45 +96,43 @@ class ReplayBuffer:
 
 # REDQSAC agent
 class REDQSACAgent:
-    def __init__(self, state_dim: int, action_dim: int, max_action: float, gamma: float, tau: float, lr: float,
-                  batch_size: int, buffer_size: int, nr_critics: int, utd: int, dropout: float = 0, lam_s: float = 1,
-                    lam_t: float = 1):
-        self.state_dim = state_dim
-        self.action_dim = action_dim
-        self.max_action = max_action
-        self.gamma = gamma
-        self.tau = tau
-        self.batch_size = batch_size
-        self.buffer_size = buffer_size
-        self.nr_critics = nr_critics
-        self.utd = utd
-        self.dropout = dropout
-        self.lam_s = lam_s
-        self.lam_t = lam_t
+    def __init__(self, agent: str, task: str, config: Config):
+        self.state_dim = config.tasks[task].state_dim
+        self.action_dim = config.tasks[task].action_dim
+        self.hidden_dim = config.globals.hidden_dim
+        self.max_action = config.globals.max_action
+        self.lr = config.globals.lr
+        self.gamma = config.globals.gamma
+        self.tau = config.globals.tau
+        self.batch_size = config.globals.batch_size
+        self.buffer_size = config.globals.buffer_size
+        self.nr_critics = config.agents[agent].q_nr
+        self.utd = config.agents[agent].utd
+        self.dropout = config.globals.dropout
+        self.lam_s = config.tasks[task].lam_s
+        self.lam_t = config.tasks[task].lam_t
         self.critics = []
         self.t_critics = []
         self.critics_optimizers = []
-        self.type = f"RED{self.utd}Q{self.nr_critics}"
 
-        self.actor = Actor(state_dim, action_dim, max_action, dropout).to("cpu")
+        self.actor = Actor(self.state_dim, self.action_dim, self.max_action, self.hidden_dim, self.dropout).to("cpu")
 
         for _ in range(self.nr_critics):
-            critic = Critic(state_dim, action_dim, dropout).to("cpu")
-            critic_target = Critic(state_dim, action_dim, dropout).to("cpu")
+            critic = Critic(self.state_dim, self.action_dim, self.hidden_dim, self.dropout).to("cpu")
+            critic_target = Critic(self.state_dim, self.action_dim, self.dropout).to("cpu")
             critic_target.load_state_dict(critic.state_dict())
-            critic_optimizer = optim.Adam(critic.parameters(), lr=lr)
+            critic_optimizer = optim.Adam(critic.parameters(), lr=self.lr)
             self.critics.append(critic)
             self.t_critics.append(critic_target)
             self.critics_optimizers.append(critic_optimizer)
 
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=lr)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.lr)
 
         # Automatic entropy tuning
-        self.target_entropy = -action_dim
+        self.target_entropy = -self.action_dim
         self.log_alpha = torch.tensor(0.0, dtype=torch.float32, requires_grad=True)
-        self.alpha_optimizer = optim.Adam([self.log_alpha], lr=lr)
-
-        self.replay_buffer = ReplayBuffer(state_dim, action_dim, buffer_size)
+        self.alpha_optimizer = optim.Adam([self.log_alpha], lr=self.lr)
+        self.replay_buffer = ReplayBuffer(self.state_dim, self.action_dim, self.buffer_size)
 
     def update(self) -> tuple[float, float, float, float, float]:
         for _ in range(self.utd):
