@@ -1,0 +1,74 @@
+# Common hyperparameters
+layer_neurons: 64
+max_action: 0.26
+min_action: -0.26
+gamma: 0.99
+tau: 0.076
+lr: 6.3e-4
+batch_size: 64
+buffer_size: 50000
+lam_s: [5, 30]
+lam_t: [15, 60]
+
+# REDQ Hyperparams
+dropout: 0
+Q_Nr: [3, 5]
+UTD: [3, 5]
+
+
+# Trim inputs (can extend to more conditions)
+trim_inputs: [-0.025,0,0,0,0,0,0,0,1449.775,1449.775]
+
+# Train
+nr_runs: 30
+ep_num: [5, 10]
+resolution: [50, 250]
+
+
+
+# Tasks
+tasks:
+  pitch:
+    state_dim: 2
+    action_dim: 1
+    angle_idx: 7
+    rate_idx: 1
+    reward_weight: -1.0
+    offset: 0.032
+
+  roll: 
+    state_dim: 2
+    action_dim: 1
+    angle_idx: 6
+    rate_idx: 0
+    reward_weight: -1.0
+    offset: 0.0
+
+  pitchroll:
+    state_dim: 4
+    action_dim: 2
+    angle_idx: [7, 6]
+    rate_idx: [1, 0]
+    reward_weight: [-0.6, -0.4]
+    offset: [0.032, 0.0]
+
+# Fault Scenarios
+
+faults:
+  nominal:
+    ep_length: 120
+
+  quarter:
+    ep_length: 60
+
+  jolt:
+    ep_length: 20
+    start_maxd: 5
+    end_maxd: 6
+    start_mind: 10
+    end_mind: 11
+
+
+
+
+
