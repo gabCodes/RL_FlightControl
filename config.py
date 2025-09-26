@@ -2,10 +2,9 @@ from dataclasses import dataclass
 import yaml
 from typing import List, Union, Dict
 
-
 @dataclass
 class GlobalConfig:
-    layer_neurons: int
+    hidden_dim: int
     max_action: float
     min_action: float
     gamma: float
@@ -16,13 +15,20 @@ class GlobalConfig:
     lam_s: List[int]
     lam_t: List[int]
     dropout: int
-    Q_Nr: List[int]
-    UTD: List[int]
     trim_inputs: List[float]
+
+
+@dataclass
+class AgentConfig:
+    utd: int | None = None
+    q_nr: int | None = None
+
+@dataclass
+class PhaseConfig:
     nr_runs: int
     ep_num: List[int]
-    resolution: List[int]
-
+    ep_length: int
+    resolution: List[int] | None = None
 
 @dataclass
 class TaskConfig:
@@ -32,6 +38,8 @@ class TaskConfig:
     rate_idx: Union[int, List[int]]
     reward_weight: Union[float, List[float]]
     offset: Union[float, List[float]]
+    lam_s: int
+    lam_t: int
 
 @dataclass
 class FaultConfig:
@@ -44,6 +52,8 @@ class FaultConfig:
 @dataclass
 class Config:
     globals: GlobalConfig
+    agents: Dict[str, AgentConfig]
+    phases: Dict[str, PhaseConfig]
     tasks: Dict[str, TaskConfig]
     faults: Dict[str, FaultConfig]
 
@@ -53,14 +63,16 @@ def load_config(path: str) -> Config:
         raw = yaml.safe_load(f)
 
     # Extract global hyperparameters (everything that is not 'tasks' or 'faults')
-    globals_keys = [k for k in raw if k not in ('tasks', 'faults')]
+    globals_keys = [k for k in raw if k not in ('agents', 'phases', 'tasks', 'faults')]
     globals_dict = {k: raw[k] for k in globals_keys}
     globals_config = GlobalConfig(**globals_dict)
 
+    agents = {name: AgentConfig(**params) for name, params in raw['agents'].items()}
+    phases = {name: PhaseConfig(**params) for name, params in raw['phases'].items()}
     tasks = {name: TaskConfig(**params) for name, params in raw['tasks'].items()}
     faults = {name: FaultConfig(**params) for name, params in raw['faults'].items()}
 
-    return Config(globals=globals_config, tasks=tasks, faults=faults)
+    return Config(globals=globals_config, agents=agents, phases=phases, tasks=tasks, faults=faults)
 
 
 if __name__ == "__main__":
@@ -70,3 +82,9 @@ if __name__ == "__main__":
     print(config.faults['jolt'].ep_length)    # 20
     print(config.globals.gamma)
     print(config.globals.dropout)
+    print(config.agents['RED3Q'].utd)
+    print(config.agents['RED5Q'].q_nr)
+    print(config.phases['train'].ep_num)
+    print(config.phases['train'].resolution)
+    print(config.phases['eval'].ep_num)
+    print(config.phases['eval'].ep_length)
