@@ -119,7 +119,7 @@ class REDQSACAgent:
 
         for _ in range(self.nr_critics):
             critic = Critic(self.state_dim, self.action_dim, self.hidden_dim, self.dropout).to("cpu")
-            critic_target = Critic(self.state_dim, self.action_dim, self.dropout).to("cpu")
+            critic_target = Critic(self.state_dim, self.action_dim, self.hidden_dim, self.dropout).to("cpu")
             critic_target.load_state_dict(critic.state_dict())
             critic_optimizer = optim.Adam(critic.parameters(), lr=self.lr)
             self.critics.append(critic)
