@@ -5,9 +5,9 @@ from config import Config
 from .util import _agentChooser, _choose_handler
 
 # Train agents based on task
-def train(agentType: str, task: str, config: Config, save_dir: str = None, save = True) -> None:
+def train(agentType: str, task: str, config: Config, save = True) -> None:
     agent = _agentChooser(agentType, task, config)
-    short_eps, ep_num, ep_length, short_res, resolution, trim_inputs = _trainLoader(config)
+    short_eps, ep_num, ep_length, short_res, resolution, trim_inputs, save_dir = _trainLoader(config)
 
     handler = _choose_handler(agent, task, config, ep_length)
 
@@ -70,14 +70,15 @@ def train(agentType: str, task: str, config: Config, save_dir: str = None, save 
         terminate()
 
 # Loads necessary parameters for training
-def _trainLoader(config: Config) -> tuple[int, int, int, int, int, list[float]]:
+def _trainLoader(config: Config) -> tuple[int, int, int, int, int, list[float], str]:
     short_eps = config.phases['train'].ep_num[0]
     ep_num = config.phases['train'].ep_num[1]
     ep_length = config.phases['train'].ep_length
     short_res = config.phases['train'].resolution[0]
     long_res = config.phases['train'].resolution[1]
+    save_dir = config.phases['train'].save_dir
     trim_inputs = config.globals.trim_inputs
 
-    return short_eps, ep_num, ep_length, short_res, long_res, trim_inputs
+    return short_eps, ep_num, ep_length, short_res, long_res, trim_inputs, save_dir
 
 
