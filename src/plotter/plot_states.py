@@ -174,7 +174,7 @@ def plot_states(task: str, time_list: list[int], ref_list: list[int], state_list
 
             return
 
-    if "roll" in task:
+    if "roll" in task.lower():
         state_array = np.array(state_list)
         action_array = np.array(action_list)
         ref_array = np.array(ref_list)
