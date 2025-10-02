@@ -1,13 +1,12 @@
 import os
 from config import Config
 from src.agents import SACAgent, REDQSACAgent
-from .util import _agentChooser, _evalLoader
+from .util import _agentChooser
 from .train import train
 from .evaluate import evaluate
 
 # Train agents, save their weights and evaluate
-def runs(agentType: str, task: str, config: Config, nr_runs = 30, training: bool = False, 
-         w_folder = "checkpoints1", p_folder = "performance1", prefix = "") -> None:
+def runs(agentType: str, task: str, config: Config, nr_runs = 30, training: bool = False, prefix = "") -> None:
     
     for run_nr in range(nr_runs):
         agent = _agentChooser(agentType, task, config)
@@ -18,7 +17,7 @@ def runs(agentType: str, task: str, config: Config, nr_runs = 30, training: bool
             os.makedirs(run_dir, exist_ok=True)
             train(agentType, task, config, run_dir)
     
-    short_eps, long_eps, short_res, long_res, ep_length = _evalLoader(config)
+    short_eps, long_eps, short_res, long_res, ep_length, w_folder, p_folder = _runLoader(config)
 
     # Short scope
     filename = f'{prefix}{agentType}{nr_runs}{task.upper()}{short_res}.txt'
@@ -71,17 +70,7 @@ def _scope_evaluator(agent: SACAgent | REDQSACAgent, agentType: str, task: str, 
                 ep_dir = os.path.join(run_dir, ep_name)
 
                 for step in range(res, int(ep_length*100) + 1, res):
-                    actor_path = os.path.join(ep_dir, f"{task}{res}{agentType}STEP_{step}.pt_actor.pth")
-
-                    if "RED" in agentType:
-                        critic_path = []
-
-                        for i in range(agent.nr_critics):
-                            c_path = os.path.join(ep_dir, f"{task}{res}{agentType}STEP_{step}.pt_critic{i+1}.pth")
-                            critic_path.append(c_path)
-                    
-                    else:
-                        critic_path = os.path.join(ep_dir, f"{task}{res}{agentType}STEP_{step}.pt_critic.pth")
+                    actor_path, critic_path = _choose_paths(agentType, agent, task, ep_dir, res, step)
 
                     agent.load_weights(actor_path, critic_path)
                     step_reward = evaluate(agent, task, None, config, plot = True)
@@ -89,4 +78,33 @@ def _scope_evaluator(agent: SACAgent | REDQSACAgent, agentType: str, task: str, 
                     print(f"Run: {run_nr + 1}, Episode: {episode + 1}, Step: {step}, Reward: {step_reward}")
 
             f.write(f"{runreward_list}\n")
+
+
+def _choose_paths(agentType: str, agent: SACAgent | REDQSACAgent, task: str, ep_dir: str, res: int, step: int) -> tuple[str, str]:
+    actor_path = os.path.join(ep_dir, f"{task}{res}{agentType}STEP_{step}.pt_actor.pth")
+
+    if "RED" in agentType:
+        critic_path = []
+
+        for i in range(agent.nr_critics):
+            c_path = os.path.join(ep_dir, f"{task}{res}{agentType}STEP_{step}.pt_critic{i+1}.pth")
+            critic_path.append(c_path)
+
+    else:
+        critic_path = os.path.join(ep_dir, f"{task}{res}{agentType}STEP_{step}.pt_critic.pth")
+
+    return actor_path, critic_path
+
+# Loads the evaluation phase specific parameters for the evaluation function to use
+def _runLoader(config: Config) -> tuple[int, int, int, int, int, str, str]:
+
+    short_eps = config.phases['run'].ep_num[0]
+    long_eps = config.phases['run'].ep_num[1]
+    short_res = config.phases['run'].resolution[0]
+    long_res = config.phases['run'].resolution[1]
+    ep_length = config.phases['run'].ep_length
+    p_folder = config.phases['run'].save_dir
+    w_folder = config.phases['train'].save_dir
+
+    return short_eps, long_eps, short_res, long_res, ep_length, w_folder, p_folder
 
