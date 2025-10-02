@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from citation import initialize, step, terminate
 from config import Config
 from .util import _choose_handler
@@ -8,7 +9,8 @@ from src.plotter import plot_states
 
 
 # Evaluate agents based on task
-def evaluate(agent: SACAgent | REDQSACAgent, task: str, fault: str, config: Config, plot: bool = False, allstates: bool = False) -> float:
+def evaluate(agent: SACAgent | REDQSACAgent, task: str, fault: str, config: Config, plot: bool = False, 
+             allstates: bool = False) -> float | tuple[np.ndarray, bool]:
 
     ep_length  = config.faults[fault].ep_length if fault else config.phases['eval'].ep_length
 
@@ -16,7 +18,7 @@ def evaluate(agent: SACAgent | REDQSACAgent, task: str, fault: str, config: Conf
 
     handler = _choose_handler(agent, task, config, ep_length, fault)
     
-    state_list, action_list, actuator_list, ref_list, time_list = [], [], [], [], []
+    state_list, action_list, actuator_list, ref_list, time_list, error_list = [], [], [], [], [], []
 
     ep_reward = 0
     timestep = 0
@@ -47,6 +49,7 @@ def evaluate(agent: SACAgent | REDQSACAgent, task: str, fault: str, config: Conf
             
         state_list.append(handler.state_list(output))
         action_list.append(handler.action_list(action))
+        error_list.append(handler.error_list(output, reference))
 
         if fault:
             actuator_list.append(handler.actuator_list(action_vector))
@@ -75,4 +78,11 @@ def evaluate(agent: SACAgent | REDQSACAgent, task: str, fault: str, config: Conf
             else:
                 plot_states(task, time_list, ref_list, state_list, action_list, zoom=True)
 
-    return ep_reward
+    if fault:
+        ep_error = np.array(error_list)
+        ep_error = np.sum(ep_error, axis=0)/(ep_length*100)
+
+        return ep_error, terminated
+    
+    else:
+        return ep_reward

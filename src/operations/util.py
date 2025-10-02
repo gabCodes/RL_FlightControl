@@ -1,5 +1,5 @@
 from src.handlers import PitchHandler, RollHandler, PitchRollHandler
-from src.faults import QuarterEfficiencyFault, JoltFault
+from src.faults import Nominal, QuarterEfficiencyFault, JoltFault
 from src.agents import SACAgent, REDQSACAgent
 from config import Config
 
@@ -17,7 +17,8 @@ def _choose_handler(agent: SACAgent | REDQSACAgent, task: str, config: Config, e
 
     if fault:
         mapping = {
-            "eff": QuarterEfficiencyFault,
+            "nominal": Nominal,
+            "quarter": QuarterEfficiencyFault,
             "jolt": JoltFault
         }
         handler = mapping[fault.lower()](handler, config)
