@@ -9,7 +9,7 @@ def train(agentType: str, task: str, config: Config, save_dir: str = None, save 
     agent = _agentChooser(agentType, task, config)
     short_eps, ep_num, ep_length, short_res, resolution, trim_inputs = _trainLoader(config)
 
-    handler = _choose_handler(agent, task, ep_length)
+    handler = _choose_handler(agent, task, config, ep_length)
 
     task = task.upper()
     

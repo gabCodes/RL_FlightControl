@@ -4,7 +4,7 @@ from src.agents import SACAgent, REDQSACAgent
 from config import Config
 
 # Chooses the correct handler per agent per task per fault
-def _choose_handler(agent: SACAgent | REDQSACAgent, task: str, ep_length: int, fault = None):
+def _choose_handler(agent: SACAgent | REDQSACAgent, task: str, config: Config, ep_length: int, fault = None):
     handler = None
 
     mapping = {
@@ -13,14 +13,14 @@ def _choose_handler(agent: SACAgent | REDQSACAgent, task: str, ep_length: int, f
         "pitchroll": PitchRollHandler
     }
 
-    handler = mapping[task.lower()](agent, ep_length)
+    handler = mapping[task.lower()](agent, ep_length, config)
 
     if fault:
         mapping = {
             "eff": QuarterEfficiencyFault,
             "jolt": JoltFault
         }
-        handler = mapping[fault.lower()](handler)
+        handler = mapping[fault.lower()](handler, config)
 
     return handler
 

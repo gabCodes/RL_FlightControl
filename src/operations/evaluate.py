@@ -10,9 +10,11 @@ from src.plotter import plot_states
 # Evaluate agents based on task
 def evaluate(agent: SACAgent | REDQSACAgent, task: str, fault: str, config: Config, plot: bool = False, allstates: bool = False) -> float:
 
-    ep_length, trim_inputs = config.phases['eval'].ep_length, config.globals.trim_inputs
+    ep_length  = config.faults[fault].ep_length if fault else config.phases['eval'].ep_length
 
-    handler = _choose_handler(agent, task, ep_length, fault)
+    trim_inputs = config.globals.trim_inputs
+
+    handler = _choose_handler(agent, task, config, ep_length, fault)
     
     state_list, action_list, actuator_list, ref_list, time_list = [], [], [], [], []
 
