@@ -33,12 +33,17 @@ phases:
     ep_num: [5, 10]
     ep_length: 25
     resolution: [50, 250]
+    save_dir: checkpoints1
   
   eval:
+    ep_length: 20
+
+  run:
     nr_runs: 30
     ep_num: [5, 10]
     ep_length: 20
     resolution: [50, 250]
+    save_dir: performance1
 
 # Tasks
 tasks:

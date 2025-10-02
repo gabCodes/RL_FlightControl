@@ -25,10 +25,11 @@ class AgentConfig:
 
 @dataclass
 class PhaseConfig:
-    nr_runs: int
-    ep_num: List[int]
     ep_length: int
+    nr_runs: int | None = None
+    ep_num: List[int] | None = None
     resolution: List[int] | None = None
+    save_dir: str | None = None
 
 @dataclass
 class TaskConfig:
@@ -88,3 +89,6 @@ if __name__ == "__main__":
     print(config.phases['train'].resolution)
     print(config.phases['eval'].ep_num)
     print(config.phases['eval'].ep_length)
+    print(config.phases['run'].resolution)
+    print(config.phases['run'].save_dir)
+    print(config.phases['train'].save_dir)
