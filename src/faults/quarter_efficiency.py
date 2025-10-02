@@ -1,6 +1,7 @@
 from src.handlers import TaskHandler
 from .base import FaultHandler
 import numpy as np
+from config import Config
 
 """
 This fault class defines the behaviours in the quarter efficiency fault scenario:
@@ -9,9 +10,10 @@ This fault class defines the behaviours in the quarter efficiency fault scenario
 """
 
 class QuarterEfficiencyFault(FaultHandler):
-    def __init__(self, wrapped_handler: TaskHandler):
+    def __init__(self, wrapped_handler: TaskHandler, config: Config):
         self._handler = wrapped_handler
         self.eff = 0.25
+        self.ep_length = config.faults['quarter'].ep_length
         self.mapping = {
             "Pitch": self._apply_pitch,
             "Roll": self._apply_roll,

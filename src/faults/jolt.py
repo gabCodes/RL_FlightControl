@@ -1,6 +1,7 @@
 from src.handlers import TaskHandler
 from .base import FaultHandler
 import numpy as np
+from config import Config
 
 """
 This fault class defines the behaviours in the jolt fault scenario:
@@ -10,11 +11,18 @@ This fault class defines the behaviours in the jolt fault scenario:
 """
 
 class JoltFault(FaultHandler):
-    def __init__(self, wrapped_handler: TaskHandler):
+    def __init__(self, wrapped_handler: TaskHandler, config: Config):
         self._handler = wrapped_handler
         self.timestep = 0.0
-        self.max = 0.26
-        self.min = -0.26
+        self.max = config.globals.max_action
+        self.min = -1 * config.globals.max_action
+
+        self.ep_length = config.faults['jolt'].ep_length
+        self.start_maxd = config.faults['jolt'].start_maxd
+        self.end_maxd = config.faults['jolt'].end_maxd
+        self.start_mind = config.faults['jolt'].start_mind
+        self.end_mind = config.faults['jolt'].end_mind
+        
         self.mapping = {
             "Pitch": self._apply_pitch,
             "Roll": self._apply_roll,
@@ -29,10 +37,10 @@ class JoltFault(FaultHandler):
     def mean_action(self, state):
         action_vector, action = self._handler.mean_action(state)
 
-        if 5.0 < self.timestep < 6.0:
+        if self.start_maxd < self.timestep < self.end_maxd:
             action_vector = self.mapping[self._handler.type](action_vector, "max")
 
-        elif 10.0 < self.timestep < 11.0:
+        elif self.start_mind < self.timestep < self.end_mind:
             action_vector = self.mapping[self._handler.type](action_vector, "min")
 
         self.timestep += 0.01
