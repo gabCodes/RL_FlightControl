@@ -6,11 +6,9 @@ from .util import _choose_handler
 from src.agents import SACAgent, REDQSACAgent
 from src.plotter import plot_states
 
-
-
 # Evaluate agents based on task
 def evaluate(agent: SACAgent | REDQSACAgent, task: str, fault: str, config: Config, plot: bool = False, 
-             allstates: bool = False) -> float | tuple[np.ndarray, bool]:
+             allstates: bool = False) -> float | tuple[np.ndarray, float, bool]:
 
     ep_length  = config.faults[fault].ep_length if fault else config.phases['eval'].ep_length
 
@@ -78,11 +76,11 @@ def evaluate(agent: SACAgent | REDQSACAgent, task: str, fault: str, config: Conf
             else:
                 plot_states(task, time_list, ref_list, state_list, action_list, zoom=True)
 
-    if fault:
+    if not fault:
+        return ep_reward
+    
+    else:
         ep_error = np.array(error_list)
         ep_error = np.sum(ep_error, axis=0)/(ep_length*100)
 
-        return ep_error, terminated
-    
-    else:
-        return ep_reward
+        return ep_error, ep_reward, terminated
