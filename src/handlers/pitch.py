@@ -2,17 +2,24 @@ from .base import TaskHandler
 import torch
 import numpy as np
 from src.signals import generate_ref, pitch_eval_ref
+from config import Config
 
 class PitchHandler(TaskHandler):
-    def __init__(self, agent, ep_length):
+    def __init__(self, agent, ep_length, config: Config):
         self.type = "Pitch"
         self.agent = agent
         self.ep_length = ep_length
-        self.ref_function = generate_ref(self.ep_length, offset = 0.032)
+
+        self.offset = config.tasks['pitch'].offset
+        self.trim_inputs = config.globals.trim_inputs
+        self.reward_weight = config.tasks['pitch'].reward_weight
+
+        self.ref_function = generate_ref(self.ep_length, offset = self.offset)
+
 
     # The pitch is the 8th output, rate is the 2nd output, 0.032 is the trim pitch
     def give_initial_state(self, output):
-        state = [np.rad2deg(0.032 - output[7]), np.rad2deg(output[1])]
+        state = [np.rad2deg(self.offset - output[7]), np.rad2deg(output[1])]
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
 
         return state_tensor
@@ -27,15 +34,17 @@ class PitchHandler(TaskHandler):
     def sample_action(self, state):
         _, action, _ = self.agent.actor.sample(state)
         action = action.detach().cpu().numpy()[0]
+        self.trim_inputs[0] = action.item()
         
-        return [action.item(), 0, 0, 0, 0, 0, 0, 0, 1449.775, 1449.775], action
+        return self.trim_inputs, action
     
     # Sample mean action from the policy
     def mean_action(self, state):
         action, _, _ = self.agent.actor.sample(state)
         action = action.detach().cpu().numpy()[0]
+        self.trim_inputs[0] = action.item()
         
-        return [action.item(), 0, 0, 0, 0, 0, 0, 0, 1449.775, 1449.775], action
+        return self.trim_inputs, action
     
     def state_list(self, output):
         l = [np.rad2deg(output[0]),np.rad2deg(output[1]),np.rad2deg(output[2]),output[3],
@@ -55,6 +64,6 @@ class PitchHandler(TaskHandler):
     
     def compute_state_and_reward(self, output, reference):
         next_state = torch.FloatTensor([np.rad2deg(reference - output[7]), np.rad2deg(output[1])]).unsqueeze(0)
-        reward = -1*np.abs(next_state[0][0])
+        reward = self.reward_weight * np.abs(next_state[0][0])
         
         return next_state, reward

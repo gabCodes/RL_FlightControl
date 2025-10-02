@@ -2,17 +2,23 @@ from .base import TaskHandler
 import torch
 import numpy as np
 from src.signals import generate_ref, roll_eval_ref
+from config import Config
 
 class RollHandler(TaskHandler):
-    def __init__(self, agent, ep_length):
+    def __init__(self, agent, ep_length, config: Config):
         self.type = "Roll"
         self.agent = agent
         self.ep_length = ep_length
-        self.ref_function = generate_ref(self.ep_length, offset = 0)
+
+        self.offset = config.tasks['roll'].offset
+        self.trim_inputs = config.globals.trim_inputs
+        self.reward_weight = config.tasks['roll'].reward_weight
+
+        self.ref_function = generate_ref(self.ep_length, offset = self.offset)
         
-    # The roll is the 7th output, roll rate is the 1st output, 0.0 is the trim roll
+    # The roll is the 7th output, roll rate is the 1st output
     def give_initial_state(self, output):
-        state = [np.rad2deg(output[6]), np.rad2deg(output[0])]
+        state = [np.rad2deg(self.offset - output[6]), np.rad2deg(output[0])]
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
 
         return state_tensor
@@ -23,19 +29,23 @@ class RollHandler(TaskHandler):
     def eval_reference(self, timestep):
         return roll_eval_ref(timestep)
 
-    # Sample stochastic action from the policy, the -0.025 entry is the elevator trim input
+    # Sample stochastic action from the policy
     def sample_action(self, state):
         _, action, _ = self.agent.actor.sample(state)
         action = action.detach().cpu().numpy()[0]
+
+        self.trim_inputs[1] = action.item()
         
-        return [-0.025, action.item(), 0, 0, 0, 0, 0, 0, 1449.775, 1449.775], action
+        return self.trim_inputs, action
     
     # Sample mean action from the policy
     def mean_action(self, state):
         action, _, _ = self.agent.actor.sample(state)
         action = action.detach().cpu().numpy()[0]
+
+        self.trim_inputs[1] = action.item()
         
-        return [-0.025, action.item(), 0, 0, 0, 0, 0, 0, 1449.775, 1449.775], action
+        return self.trim_inputs, action
     
 
     def state_list(self, output):
@@ -56,6 +66,6 @@ class RollHandler(TaskHandler):
     
     def compute_state_and_reward(self, output, reference):
         next_state = torch.FloatTensor([np.rad2deg(reference - output[6]), np.rad2deg(output[0])]).unsqueeze(0)
-        reward = -1*np.abs(next_state[0][0])
+        reward = self.reward_weight*np.abs(next_state[0][0])
         
         return next_state, reward
