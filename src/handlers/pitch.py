@@ -17,7 +17,7 @@ class PitchHandler(TaskHandler):
         self.ref_function = generate_ref(self.ep_length, offset = self.offset)
 
 
-    # The pitch is the 8th output, rate is the 2nd output, 0.032 is the trim pitch
+    # The pitch is the 8th output, rate is the 2nd output
     def give_initial_state(self, output):
         state = [np.rad2deg(self.offset - output[7]), np.rad2deg(output[1])]
         state_tensor = torch.FloatTensor(state).unsqueeze(0)
@@ -58,6 +58,9 @@ class PitchHandler(TaskHandler):
     
     def ref_list(self, reference):
         return np.rad2deg(reference)
+    
+    def error_list(self, output, reference):
+        return [np.abs(np.rad2deg(reference - output[7]))]
         
     def add_buffer(self, state, action, next_state, reward, done):
         self.agent.replay_buffer.add(state, action, next_state, reward, done)

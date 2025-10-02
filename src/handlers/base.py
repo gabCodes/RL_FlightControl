@@ -44,6 +44,11 @@ class TaskHandler(ABC):
         raise NotImplementedError
     
     @abstractmethod
+    def error_list(self, output, reference):
+        """Return the reference error"""
+        raise NotImplementedError
+    
+    @abstractmethod
     def add_buffer(self, state, action, next_state, reward, done):
         """Add experience to the replay buffer."""
         raise NotImplementedError

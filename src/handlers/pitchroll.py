@@ -68,6 +68,10 @@ class PitchRollHandler(TaskHandler):
         
         return [np.rad2deg(pitch_ref), np.rad2deg(roll_ref)]
     
+    def error_list(self, output, reference):
+        pitch_ref, roll_ref = reference
+        return [np.abs(np.rad2deg(pitch_ref - output[7])), np.abs(np.rad2deg(roll_ref - output[6]))]
+    
     def add_buffer(self, state, action, next_state, reward, done):
         self.agent.replay_buffer.add(state, action, next_state, reward, done)
 

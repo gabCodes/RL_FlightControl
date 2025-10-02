@@ -61,6 +61,9 @@ class RollHandler(TaskHandler):
     def ref_list(self, reference):
         return np.rad2deg(reference)
     
+    def error_list(self, output, reference):
+        return [np.abs(np.rad2deg(reference - output[6]))]
+    
     def add_buffer(self, state, action, next_state, reward, done):
         self.agent.replay_buffer.add(state, action, next_state, reward, done)
     
