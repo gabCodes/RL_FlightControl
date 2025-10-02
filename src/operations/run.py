@@ -7,7 +7,8 @@ from .evaluate import evaluate
 
 # Train agents, save their weights and evaluate
 def runs(agentType: str, task: str, config: Config, nr_runs = 30, training: bool = False, prefix = "") -> None:
-    
+    short_eps, long_eps, short_res, long_res, ep_length, w_folder, p_folder = _runLoader(config)
+
     for run_nr in range(nr_runs):
         agent = _agentChooser(agentType, task, config)
         
@@ -17,8 +18,6 @@ def runs(agentType: str, task: str, config: Config, nr_runs = 30, training: bool
             os.makedirs(run_dir, exist_ok=True)
             train(agentType, task, config, run_dir)
     
-    short_eps, long_eps, short_res, long_res, ep_length, w_folder, p_folder = _runLoader(config)
-
     # Short scope
     filename = f'{prefix}{agentType}{nr_runs}{task.upper()}{short_res}.txt'
     filename = os.path.join(p_folder, filename)
