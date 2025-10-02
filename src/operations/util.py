@@ -34,16 +34,6 @@ def _agentChooser(agent: str, task: str, config: Config):
 
     return a
 
-# Loads the evaluation phase specific parameters for the evaluation function to use
-def _evalLoader(config: Config) -> tuple[int, list[float]]:
-
-    short_eps = config.phases['eval'].ep_num[0]
-    long_eps = config.phases['eval'].ep_num[1]
-    short_res = config.phases['eval'].resolution[0]
-    long_res = config.phases['eval'].resolution[1]
-    ep_length = config.phases['eval'].ep_length
-
-    return short_eps, long_eps, short_res, long_res, ep_length
 
 
 
