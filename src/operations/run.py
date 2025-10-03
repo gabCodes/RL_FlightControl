@@ -16,7 +16,7 @@ def runs(agentType: str, task: str, config: Config, training: bool = False, pref
             run_name = f'RUN{run_nr+1}'
             run_dir = os.path.join(w_folder, run_name)
             os.makedirs(run_dir, exist_ok=True)
-            train(agentType, task, config, run_dir)
+            _ = train(agent, task, config, run_dir)
     
     # Short scope
     filename = f'{prefix}{agentType}{nr_runs}{task.upper()}{short_res}.txt'

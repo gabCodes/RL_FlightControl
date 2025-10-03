@@ -2,11 +2,11 @@ import os
 import torch
 from citation import initialize, step, terminate
 from config import Config
+from src.agents import SACAgent, REDQSACAgent
 from .util import _agentChooser, _choose_handler
 
 # Train agents based on task
-def train(agentType: str, task: str, config: Config, save = True) -> None:
-    agent = _agentChooser(agentType, task, config)
+def train(agent: SACAgent | REDQSACAgent, task: str, config: Config, save = True) -> None:
     short_eps, ep_num, ep_length, short_res, resolution, trim_inputs, save_dir = _trainLoader(config)
 
     handler = _choose_handler(agent, task, config, ep_length)
@@ -68,6 +68,8 @@ def train(agentType: str, task: str, config: Config, save = True) -> None:
             done = timestep >= ep_length
 
         terminate()
+
+    return agent
 
 # Loads necessary parameters for training
 def _trainLoader(config: Config) -> tuple[int, int, int, int, int, list[float], str]:

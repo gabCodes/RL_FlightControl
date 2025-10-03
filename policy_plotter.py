@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from citation import initialize, step, terminate
 from matplotlib.colors import Normalize
-from util_training import *
 import numpy as np
 import torch
 from sac_torch import SACAgent
