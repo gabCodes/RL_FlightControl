@@ -47,7 +47,7 @@ def fault_test(agentType: str, task: str, fault: str, config: Config, plot = Fal
     print("Mean reward:", reward)
     print("Number of failures:", nr_fails)
 
-    return error_array
+    return np.abs(error_array)
 
 # Loads the desired parameters from the config file
 def _faultLoader(config: Config) -> tuple[int, int, int, int, str]:
