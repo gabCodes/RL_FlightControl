@@ -6,8 +6,8 @@ from .train import train
 from .evaluate import evaluate
 
 # Train agents, save their weights and evaluate
-def runs(agentType: str, task: str, config: Config, nr_runs = 30, training: bool = False, prefix = "") -> None:
-    short_eps, long_eps, short_res, long_res, ep_length, w_folder, p_folder = _runLoader(config)
+def runs(agentType: str, task: str, config: Config, training: bool = False, prefix = "") -> None:
+    nr_runs, short_eps, long_eps, short_res, long_res, ep_length, w_folder, p_folder = _runLoader(config)
 
     for run_nr in range(nr_runs):
         agent = _agentChooser(agentType, task, config)
@@ -96,7 +96,7 @@ def _choose_paths(agentType: str, agent: SACAgent | REDQSACAgent, task: str, ep_
 
 # Loads the evaluation phase specific parameters for the evaluation function to use
 def _runLoader(config: Config) -> tuple[int, int, int, int, int, str, str]:
-
+    nr_runs = config.phases['run'].nr_runs
     short_eps = config.phases['run'].ep_num[0]
     long_eps = config.phases['run'].ep_num[1]
     short_res = config.phases['run'].resolution[0]
@@ -105,5 +105,5 @@ def _runLoader(config: Config) -> tuple[int, int, int, int, int, str, str]:
     p_folder = config.phases['run'].save_dir
     w_folder = config.phases['train'].save_dir
 
-    return short_eps, long_eps, short_res, long_res, ep_length, w_folder, p_folder
+    return nr_runs, short_eps, long_eps, short_res, long_res, ep_length, w_folder, p_folder
 
