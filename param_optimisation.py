@@ -1,8 +1,7 @@
 import optuna
 import numpy as np
-from util_training import *
-from sac_torch import SACAgent
-from redq_sac_torch import REDQSACAgent
+from src.agents import SACAgent
+from src.agents import REDQSACAgent
 
 def objective(trial) -> float:
     # torch.manual_seed(1)
