@@ -6,7 +6,7 @@ from src.agents import SACAgent, REDQSACAgent
 from .util import _agentChooser, _choose_handler
 
 # Train agents based on task
-def train(agent: SACAgent | REDQSACAgent, task: str, config: Config, save = True) -> None:
+def train(agent: SACAgent | REDQSACAgent, agentType: str, task: str, config: Config, save = True) -> None:
     short_eps, ep_num, ep_length, short_res, resolution, trim_inputs, save_dir = _trainLoader(config)
 
     handler = _choose_handler(agent, task, config, ep_length)

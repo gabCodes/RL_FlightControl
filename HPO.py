@@ -23,7 +23,7 @@ def objective(trial) -> float:
     reward_list = []
 
     for episode in range(20):
-        agent = train(agent, 'pitch', config, save = False)
+        agent = train(agent, 'SAC', 'pitch', config, save = False)
         ep_reward = evaluate(agent, 'pitch', None, config)
         reward_list.append(ep_reward.tolist())
         print(f"Episode: {episode + 1}, Reward: {ep_reward}")
@@ -59,7 +59,7 @@ def redq_objective(trial) -> float:
     reward_list = []
 
     for episode in range(20):
-        agent = train(agent, 'pitch', config, save = False)
+        agent = train(agent, 'RED3Q', 'pitch', config, save = False)
         ep_reward = evaluate(agent, 'pitch', None, config)
         reward_list.append(ep_reward.tolist())
         print(f"Episode: {episode + 1}, Reward: {ep_reward}")
