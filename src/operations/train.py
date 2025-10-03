@@ -3,7 +3,7 @@ import torch
 from citation import initialize, step, terminate
 from config import Config
 from src.agents import SACAgent, REDQSACAgent
-from .util import _agentChooser, _choose_handler
+from .util import _choose_handler
 
 # Train agents based on task
 def train(agent: SACAgent | REDQSACAgent, agentType: str, task: str, config: Config, save = True) -> None:
