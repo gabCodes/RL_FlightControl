@@ -10,8 +10,8 @@ brotli=1.0.9=h827c3e9_9
 brotli-bin=1.0.9=h827c3e9_9
 brotli-python=1.0.9=py310h5da7b33_9
 bzip2=1.0.8=h2bbff1b_6
-ca-certificates=2025.2.25=haa95532_0
-certifi=2025.4.26=py310haa95532_0
+ca-certificates=2025.9.9=haa95532_0
+certifi=2025.8.3=py310haa95532_0
 charset-normalizer=3.3.2=pyhd3eb1b0_0
 colorama=0.4.6=pypi_0
 colorlog=6.9.0=pypi_0
@@ -80,6 +80,7 @@ pip=25.0=py310haa95532_0
 platformdirs=3.10.0=py310haa95532_0
 plotly=5.24.1=py310h9909e9c_1
 pooch=1.8.2=py310haa95532_0
+pyaml=25.5.0=py310hdf80283_0
 pyparsing=3.2.0=py310haa95532_0
 pyqt=6.7.1=py310h5da7b33_0
 pyqt6-sip=13.9.1=py310h827c3e9_0
