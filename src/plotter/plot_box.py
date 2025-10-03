@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Generates the boxplot for single axis tracking
-def plot_box(groups: dict) -> None:
+def plot_box_singlets(groups: dict) -> None:
     labels = ['SAC', 'RED3Q', 'RED5Q']
 
     for title, data_list in groups.items():
@@ -31,7 +31,7 @@ def plot_box(groups: dict) -> None:
         plt.close()
     #plt.show()
 
-def plot_box(nom_data: list[np.ndarray], eff_data: list[np.ndarray], jolt_data: list[np.ndarray]) -> None:
+def plot_box_pairs(nom_data: list[np.ndarray], eff_data: list[np.ndarray], jolt_data: list[np.ndarray]) -> None:
     df_nom = _prepare_pitchroll(nom_data, 'Nominal')
     df_eff = _prepare_pitchroll(eff_data, 'Quarter')
     df_jolt = _prepare_pitchroll(jolt_data, 'Jolt')

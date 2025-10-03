@@ -1,6 +1,6 @@
 from src.operations import runs, fault_test
-from src.plotter import plot_learningcurve
-from src.plotter import plot_box
+from src.plotter import plot_learningcurve, plot_parallel
+from src.plotter.plot_box import plot_box_singlets, plot_box_pairs
 from config import Config
 
 """
@@ -66,7 +66,7 @@ def fault_cases(config: Config):
     }
 
     # Generate boxplots for pitch and roll
-    plot_box(groups)
+    plot_box_singlets(groups)
 
     #Pitchroll nom
     err_nom_pitchroll1 = fault_test('SAC', 'pitchroll', 'nominal', config)
@@ -89,7 +89,7 @@ def fault_cases(config: Config):
     jolt_data = [err_jolt_pitchroll1, err_jolt_pitchroll2, err_jolt_pitchroll3]
 
     # Generate boxplots for pitchroll
-    plot_box(nom_data, eff_data, jolt_data)
+    plot_box_pairs(nom_data, eff_data, jolt_data)
 
 
 if __name__ == "__main__":
