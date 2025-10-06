@@ -139,7 +139,7 @@ The network architecture for the actors and critics is shown below for the bi-ax
 	<img src="images\Networks.png" alt="Actor and critic network architectures" width="600">
 </div>
 
-### Citation
+#### Citation
 
 This is a SWIG auto-generated wrapper function that allows for the compiled model to initialise, step and terminate.
 
