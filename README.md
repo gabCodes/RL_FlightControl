@@ -170,12 +170,15 @@ The training and evaluation modules are based on the control logic seen below (r
 
 The state space is defined by:
 
-$$ s = [\theta_e \quad q \quad \phi_e \quad p]^{T} $$
+$$s = [\theta_e \quad q \quad \phi_e \quad p]^{T}$$
+
 The action space is defined below, where $\delta_e$ is the elevator deflection relative to trim and $\delta_a$ are the aileron deflections.
-$$ a = [\delta_e \quad \delta_a]^T $$
+
+$$a = [\delta_e \quad \delta_a]^T$$
+
 The reward function is defined as follows, with the weights found through manual experimentation.
 
-$$ r = -0.6\times|\theta_e| -0.4\times|\phi_e|$$
+$$r = -0.6\times|\theta_e| -0.4\times|\phi_e|$$
 
 During training, agent networks are saved to `.checkpoints\` at multiple steps for later evaluation in order to capture the learning performance. Shorter-spaced granular snapshots are used to capture the initial learning performance and fully trained weights are later used for testing fault performance.
 
